@@ -1,11 +1,9 @@
-/** @type {import('tailwindcss').Config} */
-export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{vue,js,ts,jsx,tsx}",
+module.exports = {
+  // ...các cấu hình khác
+  safelist: [
+    'bg-purple-800',
+    '!bg-purple-800',
+    '!bg-opacity-100',
   ],
-  theme: {
-    extend: {},
-  },
-  plugins: [],
+  // ...các cấu hình khác
 }

@@ -1,10 +1,25 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const authStore = useAuthStore()
+
+onMounted(() => {
+  if (authStore.user) {
+    router.push({ name: 'home' })
+  }
+})
+
+watch(
+  () => authStore.user,
+  (user) => {
+    if (user) {
+      router.push({ name: 'home' })
+    }
+  }
+)
 
 const email = ref('')
 const password = ref('')

@@ -2,19 +2,19 @@
 import { computed } from 'vue'
 import { useQrStore } from '@/stores/qr'
 import { bankBins } from '@/utils/vietqr'
-import { Listbox, ListboxButton, ListboxOptions, ListboxOption } from '@headlessui/vue'
-// Thử import trực tiếp từ thư viện gốc
-import { CheckIcon, ChevronUpDownIcon, XMarkIcon, QrCodeIcon } from '@heroicons/vue/24/solid' // Giữ lại /24/solid vì đây là cách thông thường, kiểm tra lại nếu vẫn lỗi
+import { XMarkIcon, QrCodeIcon } from '@heroicons/vue/24/solid'
 
 const qrStore = useQrStore()
 
-// Tạo danh sách ngân hàng cho dropdown từ bankBins
 const bankList = computed(() => {
-  return Object.entries(bankBins).map(([bin, name]) => ({ bin, name }))
+  return Object.entries(bankBins).map(([bin, name]) => ({
+    bin,
+    name,
+    label: `${name} (${bin})`,
+    value: bin,
+  }))
 })
 
-// Sử dụng computed properties với getter/setter để liên kết với store.manualInput
-// Điều này giúp tránh việc thay đổi trực tiếp reactive object từ store trong template
 const selectedBankBin = computed({
   get: () => qrStore.manualInput.bankBin,
   set: (value) => qrStore.manualInput.bankBin = value
@@ -71,42 +71,14 @@ const selectedBankName = computed(() => {
         <!-- Bank Selection Dropdown -->
         <div class="relative">
           <label for="bank-bin" class="block text-sm font-medium text-gray-300 mb-1">Ngân hàng *</label>
-          <Listbox v-model="selectedBankBin">
-            <div class="relative mt-1">
-              <ListboxButton
-                class="relative w-full cursor-default rounded-md bg-gray-700 py-2 pl-3 pr-10 text-left shadow-sm border border-gray-600 focus:outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-800 sm:text-sm text-white">
-                <span class="block truncate">{{ selectedBankName }}</span>
-                <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-                  <ChevronUpDownIcon class="h-5 w-5 text-gray-400" aria-hidden="true" />
-                </span>
-              </ListboxButton>
-
-              <transition leave-active-class="transition duration-100 ease-in" leave-from-class="opacity-100"
-                leave-to-class="opacity-0">
-                <ListboxOptions
-                  class="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-gray-700 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                  <ListboxOption v-for="bank in bankList" :key="bank.bin" :value="bank.bin"
-                    v-slot="{ active, selected }">
-                    <li
-                      :class="[active ? 'bg-blue-600 text-white' : 'text-gray-200', 'relative cursor-default select-none py-2 pl-10 pr-4',]">
-                      <span :class="[selected ? 'font-medium' : 'font-normal', 'block truncate',]">{{ bank.name }} ({{
-                        bank.bin }})</span>
-                      <span v-if="selected" class="absolute inset-y-0 left-0 flex items-center pl-3 text-blue-400">
-                        <CheckIcon class="h-5 w-5" aria-hidden="true" />
-                      </span>
-                    </li>
-                  </ListboxOption>
-                </ListboxOptions>
-              </transition>
-            </div>
-          </Listbox>
+          <PrimeSelect v-model="selectedBankBin" :options="bankList" optionLabel="label" optionValue="value"
+            placeholder="Chọn ngân hàng" class="w-full" :showClear="true" inputId="bank-bin" />
         </div>
 
         <!-- Account Number -->
         <div>
           <label for="account-number" class="block text-sm font-medium text-gray-300 mb-1">Số tài khoản *</label>
-          <input type="text" id="account-number" v-model="accountNumber" required
-            class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          <PrimeInputText id="account-number" v-model="accountNumber" required class="w-full"
             placeholder="Nhập số tài khoản" />
         </div>
       </div>
@@ -115,16 +87,14 @@ const selectedBankName = computed(() => {
         <!-- Amount -->
         <div>
           <label for="amount" class="block text-sm font-medium text-gray-300 mb-1">Số tiền (VND)</label>
-          <input type="number" id="amount" v-model.number="amount" min="0" step="1000"
-            class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Để trống nếu không cố định số tiền" />
+          <PrimeInputNumber id="amount" v-model="amount" :min="0" :step="1000" class="w-full"
+            placeholder="Để trống nếu không cố định số tiền" inputClass="w-full" />
         </div>
 
         <!-- Purpose -->
         <div>
           <label for="purpose" class="block text-sm font-medium text-gray-300 mb-1">Nội dung chuyển khoản</label>
-          <input type="text" id="purpose" v-model="purpose" maxlength="70"
-            class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          <PrimeInputText id="purpose" v-model="purpose" maxlength="70" class="w-full"
             placeholder="Tối đa 70 ký tự (vd: TT tien nha T4)" />
         </div>
       </div>
