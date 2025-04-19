@@ -1,85 +1,59 @@
 <script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
-import HelloWorld from './components/HelloWorld.vue'
+import { RouterView, useRouter } from 'vue-router'
+import { onMounted, computed } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+
+const authStore = useAuthStore()
+const router = useRouter()
+
+const isLoggedIn = computed(() => authStore.isLoggedIn)
+const userEmail = computed(() => authStore.user?.email)
+
+onMounted(() => {
+  // Khởi tạo listener để theo dõi trạng thái đăng nhập từ Supabase
+  // và lấy session hiện tại khi tải ứng dụng
+  authStore.initializeAuthListener()
+})
+
+async function handleLogout() {
+  const success = await authStore.signOut()
+  if (success) {
+    // Chuyển hướng về trang đăng nhập sau khi đăng xuất thành công
+    router.push({ name: 'login' })
+  } else {
+    // Xử lý lỗi nếu cần (ví dụ: hiển thị thông báo)
+    alert('Đăng xuất thất bại: ' + (authStore.error?.message || 'Lỗi không xác định'))
+  }
+}
 </script>
 
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
+  <div id="app-container" class="min-h-screen bg-gray-900 text-gray-200 font-sans">
+    <header class="bg-gray-800 shadow-md p-4 flex justify-between items-center">
+      <h1 class="text-xl font-semibold text-green-400">VietQR Generator</h1>
+      <div v-if="isLoggedIn" class="flex items-center space-x-4">
+        <span class="text-sm text-gray-300">{{ userEmail }}</span>
+        <button @click="handleLogout"
+          class="bg-red-500 hover:bg-red-600 text-white text-sm py-1 px-3 rounded transition-colors duration-200">
+          Đăng xuất
+        </button>
+      </div>
+      <div v-else>
+        <!-- Có thể thêm nút Đăng nhập/Đăng ký ở đây nếu muốn -->
+        <!-- <router-link to="/login" class="text-blue-400 hover:text-blue-300 mr-4">Đăng nhập</router-link>
+         <router-link to="/register" class="text-blue-400 hover:text-blue-300">Đăng ký</router-link> -->
+      </div>
+    </header>
 
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
+    <main class="p-4 md:p-8">
+      <RouterView />
+    </main>
 
-      <nav>
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
-      </nav>
-    </div>
-  </header>
-
-  <RouterView />
+    <footer class="text-center text-xs text-gray-500 py-4 mt-8 border-t border-gray-700">
+      <!-- Footer content if needed -->
+      VietQR Generator - 2025
+    </footer>
+  </div>
 </template>
 
-<style scoped>
-header {
-  line-height: 1.5;
-  max-height: 100vh;
-}
-
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
-}
-
-nav {
-  width: 100%;
-  font-size: 12px;
-  text-align: center;
-  margin-top: 2rem;
-}
-
-nav a.router-link-exact-active {
-  color: var(--color-text);
-}
-
-nav a.router-link-exact-active:hover {
-  background-color: transparent;
-}
-
-nav a {
-  display: inline-block;
-  padding: 0 1rem;
-  border-left: 1px solid var(--color-border);
-}
-
-nav a:first-of-type {
-  border: 0;
-}
-
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
-
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  nav {
-    text-align: left;
-    margin-left: -1rem;
-    font-size: 1rem;
-
-    padding: 1rem 0;
-    margin-top: 1rem;
-  }
-}
-</style>
+<!-- Xóa bỏ style scoped mặc định -->
