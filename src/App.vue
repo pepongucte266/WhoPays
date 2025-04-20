@@ -33,29 +33,25 @@ async function handleLogout() {
 </script>
 
 <template>
-  <div id="app-container" class="min-h-screen bg-gray-900 text-gray-200 font-sans">
-    <header class="bg-gray-800 shadow-md p-4 flex justify-between items-center">
-      <h1 class="text-xl font-semibold text-green-400">VietQR Generator</h1>
-      <div v-if="isLoggedIn" class="flex items-center space-x-4">
-        <span class="text-sm text-gray-300">{{ userEmail }}</span>
+  <div id="app-container"
+    class="min-h-screen bg-gray-900 text-gray-200 font-sans flex items-center justify-center flex-col">
+    <header class="bg-gray-800 shadow-md p-2 md:p-4 flex flex-col sm:flex-row justify-between items-center gap-2">
+      <h1 class="text-lg md:text-xl font-semibold text-green-400 text-center sm:text-left">VietQR Generator</h1>
+      <div v-if="isLoggedIn" class="flex items-center space-x-2 md:space-x-4">
+        <span class="text-xs md:text-sm text-gray-300">{{ userEmail }}</span>
         <button @click="handleLogout"
-          class="bg-red-500 hover:bg-red-600 text-white text-sm py-1 px-3 rounded transition-colors duration-200">
+          class="bg-red-500 hover:bg-red-600 text-white text-xs md:text-sm py-1 px-2 md:px-3 rounded transition-colors duration-200">
           Đăng xuất
         </button>
       </div>
-      <div v-else>
-        <!-- Có thể thêm nút Đăng nhập/Đăng ký ở đây nếu muốn -->
-        <!-- <router-link to="/login" class="text-blue-400 hover:text-blue-300 mr-4">Đăng nhập</router-link>
-         <router-link to="/register" class="text-blue-400 hover:text-blue-300">Đăng ký</router-link> -->
-      </div>
     </header>
 
-    <main class="p-4 md:p-8">
+    <main class="flex-1 flex justify-center">
       <RouterView />
     </main>
 
-    <footer class="text-center text-xs text-gray-500 py-4 mt-8 border-t border-gray-700">
-      <!-- Footer content if needed -->
+    <footer
+      class="text-center text-xs md:text-sm text-gray-500 py-2 md:py-4 mt-4 md:mt-8 border-t border-gray-700 w-full">
       VietQR Generator - 2025
     </footer>
   </div>

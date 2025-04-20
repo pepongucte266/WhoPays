@@ -25,17 +25,17 @@ watch(() => qrStore.generatedQrDataUrl, (val) => {
 </script>
 
 <template>
-  <main class="space-y-8">
+  <main class="w-full space-y-4 md:space-y-8 px-1 md:px-0">
     <!-- Phần Tạo QR Thủ công -->
-    <section class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <section class="w-full grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
       <ManualInputForm />
     </section>
 
     <!-- Popup QR code dùng chung cho cả đơn và nhiều QR -->
     <PrimeDialog v-model:visible="qrStore.showQrDialog" modal :closable="true" :dismissableMask="true"
-      header="Mã VietQR" :style="{ width: '420px', maxWidth: '96vw' }" content-class="bg-gray-800 p-0"
+      header="Mã VietQR" :style="{ width: '100%', maxWidth: '420px' }" content-class="bg-gray-800 p-0"
       @hide="handleClose">
-      <div class="flex flex-col items-center px-2">
+      <div class="flex flex-col items-center px-1 md:px-2 w-full max-w-full">
         <QrDisplay v-if="currentQr" :qr-data-url="currentQr.qrDataUrl" :account-number="currentQr.accountNumber"
           :amount="currentQr.amount" :purpose="currentQr.purpose" :user-bank-name="currentQr.userBankName"
           :img-id="currentQr.imgId" :bank-bin="currentQr.bankBin" :show-nav="totalQrCount > 1" :can-prev="canPrev"
@@ -44,7 +44,7 @@ watch(() => qrStore.generatedQrDataUrl, (val) => {
     </PrimeDialog>
 
     <!-- Phần Import Excel -->
-    <section>
+    <section class="w-full mt-2 md:mt-4">
       <ExcelImport />
     </section>
   </main>

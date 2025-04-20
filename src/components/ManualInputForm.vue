@@ -87,7 +87,7 @@ function handleSelectAccount(acc: SavedAccount) {
 </script>
 
 <template>
-  <div class="manual-input-form bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700">
+  <div class="manual-input-form bg-gray-800 p-4 md:p-6 rounded-lg shadow-md">
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-lg font-semibold text-green-400">Tạo QR Thủ Công</h2>
       <PrimeButton icon="pi pi-user-plus" class="!p-2 !rounded-full" severity="secondary" :text="true"
@@ -143,7 +143,7 @@ function handleSelectAccount(acc: SavedAccount) {
       </div>
 
       <!-- Action Buttons -->
-      <div class="flex justify-end space-x-3 mt-6">
+      <div class="flex justify-end space-x-3 my-[8px]">
         <button type="button" @click="handleClearForm" title="Xóa Form"
           class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-md transition duration-200 ease-in-out flex items-center">
           <i class="pi pi-times mr-1"></i>
@@ -161,8 +161,8 @@ function handleSelectAccount(acc: SavedAccount) {
 
     <!-- Popup danh sách tài khoản đã lưu -->
     <PrimeDialog v-model:visible="showAccountDialog" modal header="Chọn tài khoản đã lưu"
-      :style="{ width: '420px', maxWidth: '96vw' }" content-class="bg-gray-800 p-0" @hide="handleHideAccountDialog">
-      <div class="p-2">
+      :style="{ width: '100%', maxWidth: '360px' }" content-class="bg-gray-800 p-0" @hide="handleHideAccountDialog">
+      <div class="p-1 md:p-2">
         <PrimeDataTable :value="accountStore.accounts" dataKey="id" class="p-datatable-sm bg-gray-800 text-gray-200"
           :rows="8" scrollable scrollHeight="320px">
           <PrimeColumn field="nickname" header="Tên gợi nhớ/Chủ TK" />
