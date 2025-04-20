@@ -10,6 +10,7 @@ Tài liệu này mô tả kiến trúc tổng thể, các quyết định kỹ t
 - Quản lý trạng thái với Pinia.
 - Giao diện với Tailwind CSS.
 - Kết nối Supabase cho xác thực và lưu trữ dữ liệu.
+- Gọi API VietQR bên ngoài để tạo chuỗi mã QR thanh toán.
 
 ### Thành phần chính
 
@@ -26,7 +27,7 @@ Tài liệu này mô tả kiến trúc tổng thể, các quyết định kỹ t
 
 ### Luồng triển khai quan trọng
 
-- Đăng nhập → HomeView → Nhập/Import tài khoản → Sinh mã QR → Lưu & quản lý.
+- Đăng nhập → HomeView → Nhập/Import tài khoản → Gọi API VietQR để sinh mã QR → Lưu & quản lý.
 - Mọi thao tác đều xác thực qua Supabase.
 
 ### Quyết định kỹ thuật then chốt

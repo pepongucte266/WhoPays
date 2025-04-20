@@ -1,19 +1,15 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useQrStore } from '@/stores/qr'
-import { bankBins } from '@/utils/vietqr'
-import { XMarkIcon, QrCodeIcon } from '@heroicons/vue/24/solid'
+import { useBanksStore } from '@/stores/banks'
 
 const qrStore = useQrStore()
+const banksStore = useBanksStore()
 
-const bankList = computed(() => {
-  return Object.entries(bankBins).map(([bin, name]) => ({
-    bin,
-    name,
-    label: `${name} (${bin})`,
-    value: bin,
-  }))
-})
+// Sử dụng đúng computed property từ store
+const bankList = computed(() => banksStore.bankSelectOptions)
+const isLoadingBanks = computed(() => banksStore.isLoading)
+const bankError = computed(() => banksStore.error)
 
 const selectedBankBin = computed({
   get: () => qrStore.manualInput.bankBin,
@@ -27,25 +23,27 @@ const accountNumber = computed({
 
 const amount = computed<number | undefined>({
   get: () => qrStore.manualInput.amount,
-  set: (value: string | number | null | undefined) => { // Xác định rõ kiểu đầu vào có thể là string từ input
-    // Kiểm tra nếu value là chuỗi rỗng một cách tường minh
+  set: (value: string | number | null | undefined) => {
     if (value === '') {
       qrStore.manualInput.amount = undefined;
     } else if (value === null || value === undefined) {
       qrStore.manualInput.amount = undefined;
     }
     else {
-      // Nếu không phải chuỗi rỗng, null, undefined, cố gắng chuyển đổi sang số
       const numValue = Number(value);
-      // Gán undefined nếu không phải là số hợp lệ hoặc là số âm (mặc dù input type=number đã xử lý phần nào)
       qrStore.manualInput.amount = isNaN(numValue) || numValue < 0 ? undefined : numValue;
     }
   }
 })
 
+const nickname = computed({
+  get: () => qrStore.manualInput.nickname || '',
+  set: (value) => qrStore.manualInput.nickname = value || undefined
+})
+
 const purpose = computed({
-  get: () => qrStore.manualInput.purpose || '', // Trả về chuỗi rỗng nếu undefined
-  set: (value) => qrStore.manualInput.purpose = value || undefined // Gán undefined nếu chuỗi rỗng
+  get: () => qrStore.manualInput.purpose || '',
+  set: (value) => qrStore.manualInput.purpose = value || undefined
 })
 
 function handleGenerateQr() {
@@ -56,23 +54,22 @@ function handleClearForm() {
   qrStore.clearManualForm()
 }
 
-// Tìm tên ngân hàng dựa trên BIN đã chọn
-const selectedBankName = computed(() => {
-  return bankBins[selectedBankBin.value] || 'Chọn ngân hàng';
-});
-
+// ĐÃ XÓA onMounted(() => banksStore.fetchBanks())
 </script>
 
 <template>
   <div class="manual-input-form bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700">
     <h2 class="text-lg font-semibold mb-4 text-green-400">Tạo QR Thủ Công</h2>
     <form @submit.prevent="handleGenerateQr">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         <!-- Bank Selection Dropdown -->
         <div class="relative">
           <label for="bank-bin" class="block text-sm font-medium text-gray-300 mb-1">Ngân hàng *</label>
           <PrimeSelect v-model="selectedBankBin" :options="bankList" optionLabel="label" optionValue="value"
-            placeholder="Chọn ngân hàng" class="w-full" :showClear="true" inputId="bank-bin" />
+            :placeholder="isLoadingBanks ? 'Đang tải ngân hàng...' : (bankError ? 'Lỗi tải ngân hàng' : 'Chọn ngân hàng')"
+            class="w-full" :showClear="true" inputId="bank-bin" :loading="isLoadingBanks"
+            :disabled="isLoadingBanks || !!bankError" />
+          <small v-if="bankError" class="text-red-400 text-xs mt-1">{{ bankError }}</small>
         </div>
 
         <!-- Account Number -->
@@ -80,6 +77,13 @@ const selectedBankName = computed(() => {
           <label for="account-number" class="block text-sm font-medium text-gray-300 mb-1">Số tài khoản *</label>
           <PrimeInputText id="account-number" v-model="accountNumber" required class="w-full"
             placeholder="Nhập số tài khoản" />
+        </div>
+
+        <!-- Nickname / Account Holder Name -->
+        <div>
+          <label for="nickname" class="block text-sm font-medium text-gray-300 mb-1">Tên gợi nhớ / Chủ TK *</label>
+          <PrimeInputText id="nickname" v-model="nickname" required class="w-full"
+            placeholder="Nhập tên gợi nhớ hoặc chủ TK" />
         </div>
       </div>
 
@@ -109,19 +113,14 @@ const selectedBankName = computed(() => {
       <div class="flex justify-end space-x-3 mt-6">
         <button type="button" @click="handleClearForm" title="Xóa Form"
           class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-md transition duration-200 ease-in-out flex items-center">
-          <XMarkIcon class="h-5 w-5 mr-1" />
+          <i class="pi pi-times mr-1"></i>
           Xóa
         </button>
-        <button type="submit" :disabled="qrStore.isGeneratingQr || !selectedBankBin || !accountNumber" title="Tạo mã QR"
+        <button type="submit" :disabled="qrStore.isGeneratingQr || !selectedBankBin || !accountNumber || !nickname"
+          title="Tạo mã QR"
           class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-md transition duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed flex items-center">
-          <svg v-if="qrStore.isGeneratingQr" class="animate-spin -ml-1 mr-2 h-5 w-5 text-white"
-            xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-            </path>
-          </svg>
-          <QrCodeIcon v-else class="h-5 w-5 mr-1" />
+          <i v-if="qrStore.isGeneratingQr" class="pi pi-spin pi-spinner mr-2"></i>
+          <i v-else class="pi pi-qrcode mr-1"></i>
           {{ qrStore.isGeneratingQr ? 'Đang tạo...' : 'Tạo QR' }}
         </button>
       </div>

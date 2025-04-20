@@ -2,8 +2,10 @@
 import { RouterView, useRouter } from 'vue-router'
 import { onMounted, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useBanksStore } from '@/stores/banks' // Import banks store
 
 const authStore = useAuthStore()
+const banksStore = useBanksStore() // Initialize banks store
 const router = useRouter()
 
 const isLoggedIn = computed(() => authStore.isLoggedIn)
@@ -13,6 +15,9 @@ onMounted(() => {
   // Khởi tạo listener để theo dõi trạng thái đăng nhập từ Supabase
   // và lấy session hiện tại khi tải ứng dụng
   authStore.initializeAuthListener()
+
+  // Tải danh sách ngân hàng khi ứng dụng khởi chạy
+  banksStore.fetchBanks()
 })
 
 async function handleLogout() {

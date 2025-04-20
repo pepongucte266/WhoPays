@@ -25,10 +25,12 @@ Tài liệu này mô tả các công nghệ sử dụng, thiết lập môi trư
 - Chỉ sử dụng các dependency đã được kiểm duyệt, phổ biến.
 - Ưu tiên bảo mật thông tin người dùng.
 - Không sử dụng backend tự triển khai, tận dụng Supabase.
+- Phụ thuộc vào API VietQR bên ngoài để tạo mã QR.
 
 ### Dependency chính
 
-- @vue, @vue-router, pinia, tailwindcss, supabase-js, xlsx, vitest, eslint, prettier
+- @vue, @vue-router, pinia, tailwindcss, supabase-js, xlsx, primevue, primeicons, qrcode, vitest, eslint, prettier
+- Đã gỡ bỏ: @heroicons/vue
 
 ### Mẫu sử dụng công cụ
 

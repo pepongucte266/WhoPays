@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useQrStore } from '@/stores/qr'
-import { ArrowDownTrayIcon } from '@heroicons/vue/24/solid'
+// import { ArrowDownTrayIcon } from '@heroicons/vue/24/solid' // Removed Heroicon
 
 const qrStore = useQrStore()
 
@@ -54,7 +54,7 @@ function handleDownload() {
 
     <button v-if="canDownload" @click="handleDownload" title="Tải xuống mã QR"
       class="mt-auto px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-md transition duration-200 ease-in-out flex items-center">
-      <ArrowDownTrayIcon class="h-4 w-4 mr-1" />
+      <i class="pi pi-download h-4 w-4 mr-1"></i> <!-- Replaced with PrimeIcon -->
       Tải xuống (PNG)
     </button>
     <p v-else class="mt-auto text-xs text-gray-500 italic">Không thể tải xuống</p>

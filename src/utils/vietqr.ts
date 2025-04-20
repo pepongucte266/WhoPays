@@ -1,198 +1,199 @@
 // src/utils/vietqr.ts
 
 /**
- * Represents the data needed to generate a VietQR string.
+ * Represents the data needed to generate a VietQR string and potentially store account info.
+ * Uses internal field names like bankBin.
  */
 export interface VietQRData {
-  bankBin: string // Mã BIN ngân hàng
+  bankBin: string // Mã BIN ngân hàng (sẽ là caiValue từ API bank list)
   accountNumber: string // Số tài khoản
+  nickname?: string // Tên gợi nhớ / Chủ TK (dùng cho lưu trữ, không vào QR payload)
   amount?: number // Số tiền (tùy chọn)
   purpose?: string // Nội dung chuyển khoản (tùy chọn, max 70 chars recommended)
 }
 
-// Constants for VietQR fields based on NAPAS specification
-const PAYLOAD_FORMAT_INDICATOR = '00'
-const INITIATION_METHOD = '01' // 11 for dynamic QR, 12 for static QR (reusable)
-const MERCHANT_ACCOUNT_INFO = '38'
-const MERCHANT_INFO_GUID = '00' // GUID for VietQR
-const MERCHANT_INFO_GUID_VALUE = 'A000000727'
-const MERCHANT_INFO_BANK_INFO = '01' // Contains Bank BIN and Account Number
-const MERCHANT_INFO_BANK_BIN = '00'
-const MERCHANT_INFO_ACCOUNT_NUMBER = '01'
-const TRANSACTION_CURRENCY = '53'
-const TRANSACTION_CURRENCY_VALUE = '704' // VND
-const TRANSACTION_AMOUNT = '54'
-const COUNTRY_CODE = '58'
-const COUNTRY_CODE_VALUE = 'VN'
-const ADDITIONAL_DATA = '62'
-const ADDITIONAL_DATA_PURPOSE = '08'
-const CRC16 = '63'
-
 /**
- * Builds a TLV (Tag-Length-Value) string segment.
- * @param tag The tag number (string).
- * @param value The value (string).
- * @returns The TLV formatted string.
+ * Interface for data required by the VietQR API endpoint for QR generation.
+ * Uses API field names like bankCode.
  */
-function buildTLV(tag: string, value: string): string {
-  const length = value.length.toString().padStart(2, '0')
-  return `${tag}${length}${value}`
+export interface VietQRAPIData {
+  bankCode: string // Mã chữ của ngân hàng (TCB, VCB...)
+  bankAccount: string // Số tài khoản
+  userBankName: string // Tên gợi nhớ / Chủ tài khoản (Bắt buộc)
+  amount?: string // API expects string, even for numbers
+  content?: string // Nội dung chuyển khoản
 }
 
 /**
- * Generates the VietQR payload string (before CRC calculation).
- * @param data The VietQR data.
- * @param isDynamic Whether the QR is for a single transaction (dynamic) or reusable (static). Defaults to true (dynamic).
- * @returns The VietQR payload string.
+ * Fetches the VietQR string from the external VietQR API.
+ * @param data Data required for the API call (using API field names).
+ * @returns The VietQR string (qrCode field from the API response).
+ * @throws Throws an error if the API call fails or returns an error message.
  */
-function generateVietQRPayload(data: VietQRData, isDynamic: boolean = true): string {
-  const { bankBin, accountNumber, amount, purpose } = data
+export async function fetchVietQRStringFromAPI(data: VietQRAPIData): Promise<string> {
+  const apiUrl = 'https://api.vietqr.org/vqr/api/qr/generate/unauthenticated'
 
-  if (!bankBin || !accountNumber) {
-    throw new Error('Bank BIN and Account Number are required.')
+  // Prepare the request body, ensuring amount is a string if present
+  const requestBody = {
+    bankAccount: data.bankAccount,
+    userBankName: data.userBankName,
+    bankCode: data.bankCode, // API này yêu cầu bankCode (mã chữ)
+    amount: data.amount !== undefined ? String(data.amount) : '',
+    content: data.content || '',
   }
 
-  // Merchant Account Information block
-  const bankInfo =
-    buildTLV(MERCHANT_INFO_BANK_BIN, bankBin) +
-    buildTLV(MERCHANT_INFO_ACCOUNT_NUMBER, accountNumber)
-  const merchantAccountInfoValue =
-    buildTLV(MERCHANT_INFO_GUID, MERCHANT_INFO_GUID_VALUE) +
-    buildTLV(MERCHANT_INFO_BANK_INFO, bankInfo)
-  const merchantAccountInfoTLV = buildTLV(MERCHANT_ACCOUNT_INFO, merchantAccountInfoValue)
+  try {
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        // Add other necessary headers from curl if needed
+        'Cache-Control': 'no-cache',
+        Referer: 'https://vietqr.vn/',
+      },
+      body: JSON.stringify(requestBody),
+    })
 
-  // Initiation Method
-  const initiationMethodValue = isDynamic ? '11' : '12' // 11 for one-time payment, 12 for reusable
-  const initiationMethodTLV = buildTLV(INITIATION_METHOD, initiationMethodValue)
+    const responseData = await response.json()
 
-  // Start building the payload
-  let payload =
-    buildTLV(PAYLOAD_FORMAT_INDICATOR, '01') + initiationMethodTLV + merchantAccountInfoTLV
+    // API trả về cấu trúc có thể khác nhau, cần kiểm tra kỹ
+    if (!response.ok || !responseData.qrCode) {
+      // Cố gắng lấy message lỗi từ các cấu trúc response khác nhau
+      const errorMessage =
+        responseData?.message || responseData?.desc || 'Failed to generate VietQR string.'
+      throw new Error(`Lỗi API VietQR: ${errorMessage} (Status: ${response.status})`)
+    }
 
-  // Add mandatory fields
-  payload += buildTLV(TRANSACTION_CURRENCY, TRANSACTION_CURRENCY_VALUE)
-
-  // Add optional amount if provided and dynamic
-  if (amount !== undefined && amount > 0 && isDynamic) {
-    payload += buildTLV(TRANSACTION_AMOUNT, amount.toString())
-  }
-
-  // Add country code
-  payload += buildTLV(COUNTRY_CODE, COUNTRY_CODE_VALUE)
-
-  // Add optional additional data (purpose)
-  if (purpose) {
-    // Ensure purpose doesn't exceed recommended length (though standard allows more)
-    const truncatedPurpose = purpose.substring(0, 70)
-    const additionalDataValue = buildTLV(ADDITIONAL_DATA_PURPOSE, truncatedPurpose)
-    payload += buildTLV(ADDITIONAL_DATA, additionalDataValue)
-  }
-
-  // Add CRC tag placeholder (will be calculated later)
-  payload += buildTLV(CRC16, '04') // Placeholder '04' for length
-
-  return payload
-}
-
-/**
- * Calculates CRC16-CCITT checksum.
- * Polynomial: 0x1021
- * Initial Value: 0xFFFF
- * @param data The input string data.
- * @returns The CRC16 checksum as a 4-character uppercase hex string.
- */
-function calculateCRC16CCITT(data: string): string {
-  let crc = 0xffff
-  const polynomial = 0x1021
-
-  for (let i = 0; i < data.length; i++) {
-    const byte = data.charCodeAt(i)
-    crc ^= byte << 8
-    for (let j = 0; j < 8; j++) {
-      if ((crc & 0x8000) !== 0) {
-        crc = (crc << 1) ^ polynomial
-      } else {
-        crc <<= 1
-      }
+    return responseData.qrCode
+  } catch (error) {
+    console.error('Error fetching VietQR from API:', error)
+    // Re-throw error để store xử lý
+    if (error instanceof Error) {
+      throw error
+    } else {
+      throw new Error('Lỗi không xác định khi gọi API tạo QR.')
     }
   }
-
-  crc &= 0xffff // Ensure it's a 16-bit value
-  return crc.toString(16).toUpperCase().padStart(4, '0')
 }
+
+// --- Bank List Fetching ---
+
+// Type matching the structure from https://api.vietqr.org/vqr/api/bank-type
+export interface BankData {
+  id: string
+  bankCode: string // Mã chữ (TCB, VCB)
+  bankName: string // Tên đầy đủ
+  bankShortName: string // Tên ngắn
+  imageId: string // ID ảnh logo
+  status: number
+  caiValue: string // Mã BIN (970...)
+  unlinkedType: number
+}
+
+// Fallback data using the raw API structure
+export const fallbackBankData: BankData[] = [
+  {
+    id: '04df3963-2fa7-476d-b4b5-2cedb3218b5a',
+    bankCode: 'TCB',
+    bankName: 'Ngân hàng TMCP Kỹ thương Việt Nam',
+    bankShortName: 'Techcombank',
+    imageId: '97c7b39e-812c-48b5-8126-16e187cfe91b',
+    status: 0,
+    caiValue: '970407',
+    unlinkedType: 0,
+  },
+  {
+    id: '089cb1a5-39b4-4244-b80e-bbe3104c3e2f',
+    bankCode: 'ACB',
+    bankName: 'Ngân hàng TMCP Á Châu',
+    bankShortName: 'ACB',
+    imageId: 'e917e05e-c370-4ae7-82c9-e16c9200b3fe',
+    status: 0,
+    caiValue: '970416',
+    unlinkedType: 0,
+  },
+  {
+    id: 'f44cbe47-cb2b-427e-98b5-10afa0375690',
+    bankCode: 'BIDV',
+    bankName: 'Ngân hàng TMCP Đầu tư và Phát triển Việt Nam',
+    bankShortName: 'BIDV',
+    imageId: 'cb18c1b3-d661-4695-b2e8-dba8e887abd6',
+    status: 1,
+    caiValue: '970418',
+    unlinkedType: 1,
+  },
+  {
+    id: 'aa4e489b-254e-4351-9cd4-f62e09c63ebc',
+    bankCode: 'MB',
+    bankName: 'Ngân hàng TMCP Quân đội',
+    bankShortName: 'MBBank',
+    imageId: '58b7190b-a294-4b14-968f-cd365593893e',
+    status: 1,
+    caiValue: '970422',
+    unlinkedType: 0,
+  },
+  {
+    id: 'ebd51e4f-6036-431d-a5c8-0dbde770ea0f',
+    bankCode: 'VCB',
+    bankName: 'Ngân hàng TMCP Ngoại Thương Việt Nam',
+    bankShortName: 'Vietcombank',
+    imageId: 'd0e196fc-3d4c-4501-b453-ac8c3df968cf',
+    status: 0,
+    caiValue: '970436',
+    unlinkedType: 0,
+  },
+  {
+    id: '3ed1ce8f-0d30-40fd-968b-0b101ae33f7d',
+    bankCode: 'ICB',
+    bankName: 'Ngân hàng TMCP Công thương Việt Nam',
+    bankShortName: 'Vietinbank',
+    imageId: '22abf9a2-6ede-4e48-8b8a-9c8fc1303c22',
+    status: 0,
+    caiValue: '970415',
+    unlinkedType: 0,
+  },
+  {
+    id: '969be03c-4676-42f9-b110-f0bce4268e1d',
+    bankCode: 'VBA',
+    bankName: 'Ngân hàng Nông nghiệp và Phát triển Nông thôn Việt Nam',
+    bankShortName: 'Agribank',
+    imageId: '6cbf8835-7615-4f87-bbdb-56ee7ad7839a',
+    status: 0,
+    caiValue: '970405',
+    unlinkedType: 0,
+  },
+  // Add more banks if needed
+]
 
 /**
- * Generates the complete VietQR string including the CRC checksum.
- * @param data The VietQR data.
- * @param isDynamic Whether the QR is for a single transaction (dynamic) or reusable (static). Defaults to true (dynamic).
- * @returns The final VietQR string ready for QR code generation.
+ * Fetches the list of banks from the VietQR API.
+ * Returns the raw data directly from the API.
+ * @returns An array of BankData objects or null if the fetch fails.
  */
-export function generateVietQRString(data: VietQRData, isDynamic: boolean = true): string {
-  const payloadWithoutCRCPlaceholder = generateVietQRPayload(data, isDynamic)
-  // Remove the CRC placeholder (last 4 chars: tag '63', length '04') before calculating CRC
-  const payloadForCRC = payloadWithoutCRCPlaceholder.slice(0, -4)
-  const crcValue = calculateCRC16CCITT(payloadForCRC)
-  // Replace the placeholder with the actual CRC value
-  const finalPayload = payloadForCRC + crcValue
-  return finalPayload
-}
+export async function fetchBankListFromAPI(): Promise<BankData[] | null> {
+  const apiUrl = 'https://api.vietqr.org/vqr/api/bank-type'
+  try {
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
 
-// Example Usage (can be removed later)
-/*
-try {
-  const qrData: VietQRData = {
-    bankBin: '970418', // Example BIN (VietinBank)
-    accountNumber: '1234567890', // Example Account
-    amount: 50000,
-    purpose: 'Thanh toan don hang XYZ',
-  };
-  const vietQRString = generateVietQRString(qrData);
-  console.log('VietQR String:', vietQRString);
-  // You would then pass this string to a QR code library like 'qrcode'
-} catch (error) {
-  console.error('Error generating VietQR:', error);
-}
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
 
-try {
-    const staticQrData: VietQRData = {
-        bankBin: '970436', // Example BIN (Vietcombank)
-        accountNumber: '0987654321', // Example Account
-        purpose: 'Ung ho quy ABC', // Purpose can still be added to static QR
-    };
-    const staticVietQRString = generateVietQRString(staticQrData, false); // Set isDynamic to false
-    console.log('Static VietQR String:', staticVietQRString);
-} catch (error) {
-    console.error('Error generating static VietQR:', error);
-}
-*/
-
-// TODO: Add a list or mechanism to validate Bank BINs
-export const bankBins: { [key: string]: string } = {
-  '970418': 'VietinBank',
-  '970436': 'Vietcombank',
-  '970415': 'BIDV',
-  '970405': 'Agribank',
-  '970422': 'MB Bank',
-  '970432': 'Techcombank',
-  '970423': 'TPBank',
-  '970407': 'VPBank',
-  '970441': 'VIB',
-  '970429': 'Sacombank',
-  '970414': 'OceanBank',
-  '970419': 'NCB',
-  '970425': 'An Binh Bank',
-  '970428': 'Nam A Bank',
-  '970431': 'Eximbank',
-  '970437': 'HDBank',
-  '970438': 'Bao Viet Bank',
-  '970440': 'SeABank',
-  '970443': 'SHB',
-  '970448': 'OCB',
-  '970449': 'LienVietPostBank',
-  '970452': 'Kien Long Bank',
-  '970454': 'VietCapital Bank',
-  '970457': 'PVcomBank',
-  '970458': 'VietBank',
-  '970468': 'DongA Bank', // Note: DongA Bank might have issues with VietQR sometimes
-  // Add more banks as needed
+    // Assume the API returns data matching the BankData interface
+    const data: BankData[] = await response.json()
+    // Basic validation: check if it's an array
+    if (!Array.isArray(data)) {
+      console.error('API response is not an array:', data)
+      throw new Error('Invalid data format received from bank list API.')
+    }
+    return data
+  } catch (error) {
+    console.error('Error fetching bank list from API:', error)
+    return null // Return null to indicate failure
+  }
 }
