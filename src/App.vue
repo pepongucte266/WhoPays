@@ -60,5 +60,3 @@ async function handleLogout() {
     </footer>
   </div>
 </template>
-
-<!-- Xóa bỏ style scoped mặc định -->
