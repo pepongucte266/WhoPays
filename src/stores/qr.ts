@@ -1,12 +1,19 @@
 import { ref, reactive } from 'vue'
 import { defineStore } from 'pinia'
-// Import hàm API mới và các type liên quan
 import { fetchVietQRStringFromAPI, type VietQRAPIData, type VietQRData } from '@/utils/vietqr'
 import { useBanksStore } from '@/stores/banks'
 import QRCode from 'qrcode'
 import * as XLSX from 'xlsx'
 
-// Định nghĩa cấu trúc dữ liệu cho một bản ghi từ Excel
+// Hàm loại bỏ dấu tiếng Việt khỏi chuỗi
+function removeVietnameseDiacritics(str: string): string {
+  return str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+}
+
 export interface ExcelRecord extends VietQRData {
   id: number
   selected?: boolean
@@ -57,7 +64,6 @@ export const useQrStore = defineStore('qr', () => {
         throw new Error('Vui lòng nhập Tên gợi nhớ / Chủ TK.')
       }
 
-      // Lấy thông tin ngân hàng từ banksStore bằng BIN (caiValue)
       const bankInfo = banksStore.getBankByBin(manualInput.bankBin)
       if (!bankInfo || !bankInfo.bankCode) {
         throw new Error(
@@ -66,20 +72,22 @@ export const useQrStore = defineStore('qr', () => {
       }
       const bankCodeForAPI = bankInfo.bankCode
 
-      // Chuẩn bị dữ liệu cho API (VietQRAPIData)
+      // Loại bỏ dấu khỏi nội dung chuyển khoản
+      const contentNoDiacritics = manualInput.purpose
+        ? removeVietnameseDiacritics(manualInput.purpose)
+        : ''
+
       const apiData: VietQRAPIData = {
         bankCode: bankCodeForAPI,
         bankAccount: manualInput.accountNumber,
         userBankName: manualInput.nickname,
         amount: manualInput.amount !== undefined ? String(manualInput.amount) : undefined,
-        content: manualInput.purpose,
+        content: contentNoDiacritics,
       }
 
-      // Gọi API để lấy chuỗi QR
       const qrString = await fetchVietQRStringFromAPI(apiData)
       generatedQrString.value = qrString
 
-      // Tạo Data URL từ chuỗi VietQR
       const dataUrl = await QRCode.toDataURL(qrString, { errorCorrectionLevel: 'M' })
       generatedQrDataUrl.value = dataUrl
     } catch (error: unknown) {
@@ -164,12 +172,10 @@ export const useQrStore = defineStore('qr', () => {
 
             if (bankInput && accountNumber && nickname) {
               let bankBin: string | undefined = undefined
-              // Ưu tiên tìm theo caiValue (BIN)
               const bankByBin = banksStore.getBankByBin(bankInput)
               if (bankByBin) {
                 bankBin = bankInput
               } else {
-                // Tìm theo bankShortName hoặc bankCode
                 const foundBank = Object.values(banksStore.banksMap).find(
                   (b) =>
                     b.bankShortName.toLowerCase() === bankInput.toLowerCase() ||
@@ -254,7 +260,6 @@ export const useQrStore = defineStore('qr', () => {
             throw new Error(`Dòng ${record.id}: Thiếu Tên gợi nhớ / Chủ TK.`)
           }
 
-          // Lấy thông tin ngân hàng từ banksStore bằng BIN (caiValue)
           const bankInfo = banksStore.getBankByBin(record.bankBin)
           if (!bankInfo || !bankInfo.bankCode) {
             throw new Error(
@@ -263,13 +268,17 @@ export const useQrStore = defineStore('qr', () => {
           }
           const bankCodeForAPI = bankInfo.bankCode
 
-          // Chuẩn bị dữ liệu cho API (VietQRAPIData)
+          // Loại bỏ dấu khỏi nội dung chuyển khoản
+          const contentNoDiacritics = record.purpose
+            ? removeVietnameseDiacritics(record.purpose)
+            : ''
+
           const apiData: VietQRAPIData = {
             bankCode: bankCodeForAPI,
             bankAccount: record.accountNumber,
             userBankName: record.nickname,
             amount: record.amount !== undefined ? String(record.amount) : undefined,
-            content: record.purpose,
+            content: contentNoDiacritics,
           }
 
           const qrString = await fetchVietQRStringFromAPI(apiData)

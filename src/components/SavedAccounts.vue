@@ -1,30 +1,25 @@
 <script setup lang="ts">
-import { onMounted, computed, ref, watch } from 'vue' // Import ref, watch
+import { onMounted, computed, ref, watch } from 'vue'
 import { useAccountStore, type SavedAccount } from '@/stores/account'
 import { useQrStore } from '@/stores/qr'
-import { useBanksStore } from '@/stores/banks' // Import banks store
-import type { DataTableContext, DataTableRowSelectEvent } from 'primevue/datatable' // Use DataTableContext again
-// PrimeVue components DataTable, Column are registered globally in main.ts
+import { useBanksStore } from '@/stores/banks'
+import type { DataTableContext, DataTableRowSelectEvent } from 'primevue/datatable'
 
 const accountStore = useAccountStore()
 const qrStore = useQrStore()
-const banksStore = useBanksStore() // Initialize banks store
+const banksStore = useBanksStore()
 
 const accounts = computed(() => accountStore.accounts)
 const isLoading = computed(() => accountStore.loading)
 const error = computed(() => accountStore.error)
 
-// Ref for DataTable selection
 const selectedAccountData = ref<SavedAccount | null>(null)
 
-// Define DataTable PassThrough configuration in script for better type handling
 const dataTablePT = {
   loadingOverlay: { class: 'bg-gray-800 bg-opacity-50' },
   tbody: { class: 'bg-gray-800 divide-y divide-gray-700' },
   header: { class: 'bg-gray-750 sticky top-0 z-10' },
-  // Use DataTableContext and check for 'selected' property existence
   row: (options: { context: DataTableContext }) => {
-    // Check if 'selected' exists on the context before using it
     const isSelected = 'selected' in options.context && options.context.selected;
     return {
       class: [isSelected ? 'bg-gray-600' : undefined, 'hover:bg-gray-700 cursor-pointer']
@@ -37,20 +32,18 @@ const dataTablePT = {
 };
 
 onMounted(() => {
-  // Tải danh sách tài khoản khi component được mount (nếu chưa có)
   if (accounts.value.length === 0) {
     accountStore.fetchAccounts()
   }
 })
 
-// Use banksStore to get bank name
+// Sửa: Lấy đúng tên trường mới từ store
 function getBankName(bin: string): string {
   const bankInfo = banksStore.getBankByBin(bin);
-  return bankInfo?.shortName || 'N/A' // Return shortName or N/A
+  return bankInfo?.bankShortName || bankInfo?.bankName || 'N/A'
 }
 
-// Modified function to handle DataTable row select event
-function handleRowSelect(event: DataTableRowSelectEvent) { // Use specific event type
+function handleRowSelect(event: DataTableRowSelectEvent) {
   const account = event.data as SavedAccount;
   if (account) {
     qrStore.manualInput.bankBin = account.bank_bin
@@ -63,9 +56,7 @@ function handleRowSelect(event: DataTableRowSelectEvent) { // Use specific event
   }
 }
 
-// Watch for external changes to manualInput and clear DataTable selection
 watch(() => [qrStore.manualInput.bankBin, qrStore.manualInput.accountNumber, qrStore.manualInput.nickname], () => {
-  // If the data in the form doesn't match the selected row, clear selection
   if (selectedAccountData.value &&
     (selectedAccountData.value.bank_bin !== qrStore.manualInput.bankBin ||
       selectedAccountData.value.account_number !== qrStore.manualInput.accountNumber ||
@@ -74,29 +65,25 @@ watch(() => [qrStore.manualInput.bankBin, qrStore.manualInput.accountNumber, qrS
   }
 }, { deep: true })
 
-
 async function deleteAccount(accountId: number) {
   if (confirm('Bạn có chắc chắn muốn xóa tài khoản đã lưu này?')) {
     await accountStore.deleteAccount(accountId)
-    // Clear selection if the deleted account was selected
     if (selectedAccountData.value?.id === accountId) {
       selectedAccountData.value = null;
-      // Optionally clear the form as well
-      // qrStore.clearManualForm();
     }
   }
 }
 
 async function saveCurrentAccount() {
-  const { bankBin, accountNumber, nickname } = qrStore.manualInput; // Sử dụng nickname
-  if (!bankBin || !accountNumber || !nickname) { // Kiểm tra nickname
+  const { bankBin, accountNumber, nickname } = qrStore.manualInput;
+  if (!bankBin || !accountNumber || !nickname) {
     alert('Vui lòng nhập đầy đủ Mã Ngân hàng, Số tài khoản và Tên gợi nhớ / Chủ TK trước khi lưu.');
     return;
   }
   const success = await accountStore.addAccount({
     bank_bin: bankBin,
     account_number: accountNumber,
-    nickname: nickname // Truyền nickname
+    nickname: nickname
   });
   if (success) {
     alert('Đã lưu tài khoản thành công!');
@@ -115,11 +102,11 @@ async function saveCurrentAccount() {
         <button @click="saveCurrentAccount" title="Lưu tài khoản hiện tại từ form"
           :disabled="!qrStore.manualInput.bankBin || !qrStore.manualInput.accountNumber || !qrStore.manualInput.nickname"
           class="p-1.5 text-blue-400 hover:text-blue-300 disabled:text-gray-500 disabled:cursor-not-allowed">
-          <i class="pi pi-plus-circle text-xl"></i> <!-- Thay bằng PrimeIcon -->
+          <i class="pi pi-plus-circle text-xl"></i>
         </button>
         <button @click="accountStore.fetchAccounts" :disabled="isLoading" title="Tải lại danh sách"
           class="p-1.5 text-gray-400 hover:text-gray-200 disabled:text-gray-600 disabled:cursor-not-allowed">
-          <i class="pi pi-refresh text-lg" :class="{ 'pi-spin': isLoading }"></i> <!-- Thay bằng PrimeIcon -->
+          <i class="pi pi-refresh text-lg" :class="{ 'pi-spin': isLoading }"></i>
         </button>
       </div>
     </div>
@@ -130,7 +117,6 @@ async function saveCurrentAccount() {
     <div v-else-if="error" class="text-center text-red-400 py-4">
       Lỗi tải danh sách: {{ error }}
     </div>
-    <!-- Use PrimeDataTable and PrimeColumn -->
     <PrimeDataTable v-else :value="accounts" v-model:selection="selectedAccountData" selectionMode="single" dataKey="id"
       @rowSelect="handleRowSelect" scrollable scrollHeight="240px" :loading="isLoading" class="p-datatable-sm text-sm"
       tableClass="min-w-full" :pt="dataTablePT">

@@ -1,40 +1,54 @@
-# activeContext.md
+# Active Context: Quản lý danh sách ngân hàng, import Excel và tối ưu UI
 
-## Bối cảnh hoạt động hiện tại
+## 1. Field name đồng bộ với API
 
-Tài liệu này ghi nhận trạng thái công việc, thay đổi gần đây, bước tiếp theo, quyết định quan trọng, mẫu thiết kế, và các ghi chú học được trong quá trình phát triển.
+- Toàn bộ hệ thống sử dụng field name gốc từ API VietQR: `bankCode`, `bankName`, `bankShortName`, `caiValue`, `imageId`, ...
+- Không còn ánh xạ sang các trường nội bộ như `code`, `name`, `shortName`, `bin`.
+- Khi lưu tài khoản, `bank_bin` là `caiValue`, `bank_code` là `bankCode`.
 
-### Trạng thái hiện tại
+## 2. Store banks và fetch API
 
-- Đã tích hợp API VietQR để tạo mã QR thay vì tạo cục bộ.
-- Đã dọn dẹp code tạo QR cục bộ không còn sử dụng.
-- Memory Bank đã được cập nhật để phản ánh thay đổi.
+- Store `banks.ts` chỉ xử lý dữ liệu đúng với field name gốc.
+- Getter `getBankByBin` nhận `caiValue` (BIN), `getBankByCode` nhận `bankCode`.
+- Danh sách ngân hàng cho dropdown là `bankSelectOptions` (mỗi item `{ label, value }`).
+- Hàm `fetchBanks()` chỉ nên được gọi một lần khi app khởi động (ví dụ trong `App.vue`).
+- Các component con (ví dụ: `ManualInputForm.vue`) chỉ lấy dữ liệu từ store, KHÔNG tự gọi lại `fetchBanks()`.
 
-### Thay đổi gần đây
+## 3. Tránh gọi API lặp lại
 
-- Thêm hàm `fetchVietQRStringFromAPI` vào `src/utils/vietqr.ts` để gọi API VietQR.
-- Cập nhật các actions `generateSingleQrCode` và `generateMultipleQrCodes` trong `src/stores/qr.ts` để sử dụng hàm API mới.
-- Xóa các hàm và hằng số liên quan đến việc tạo QR cục bộ trong `src/utils/vietqr.ts`.
-- Cập nhật `systemPatterns.md` và `techContext.md`.
+- Nếu gọi `fetchBanks()` ở nhiều nơi (App.vue, component con), API sẽ bị gọi nhiều lần khi reload.
+- Đã tối ưu: chỉ gọi ở `App.vue`, các component khác không gọi lại.
+- Khi reload trang, API bank-type chỉ được gọi một lần.
 
-### Bước tiếp theo
+## 4. Dropdown ngân hàng
 
-- Cập nhật `progress.md` để ghi nhận hoàn thành tác vụ tích hợp API VietQR.
-- Kiểm tra lại luồng nhập liệu từ Excel để đảm bảo cột `nickname` (hoặc tương đương) được xử lý đúng cách cho API.
-- Tiếp tục phát triển các tính năng theo kế hoạch.
+- Dropdown sử dụng đúng `bankSelectOptions` từ store.
+- Bind đúng `optionLabel="label"` và `optionValue="value"`.
 
-### Quyết định & lưu ý quan trọng
+## 5. Lưu tài khoản
 
-- Memory Bank là nguồn tham chiếu duy nhất về tiến trình và kiến thức dự án.
-- Mọi thay đổi lớn đều phải cập nhật vào đây.
-- API VietQR yêu cầu trường `userBankName` (ánh xạ từ `nickname`). Cần đảm bảo trường này luôn có giá trị khi gọi API, đặc biệt là từ nguồn Excel.
+- Khi lưu tài khoản, lấy `bankCode` và `caiValue` từ store để lưu vào DB.
+- Đảm bảo không bị trùng lặp tài khoản.
 
-### Mẫu thiết kế & ưu tiên
+## 6. SQL Supabase
 
-- Ưu tiên đơn giản, rõ ràng, dễ tra cứu.
-- Ghi chú ngắn gọn, tập trung vào thông tin quan trọng.
+- Để lưu `bank_code` (mã chữ), thêm cột:
+  ```sql
+  ALTER TABLE user_accounts
+  ADD COLUMN bank_code TEXT;
+  ```
 
-### Ghi chú học được
+## 7. Kinh nghiệm debug
 
-- Luôn kiểm tra loại file/thư mục trước khi thao tác hệ thống.
-- Cần chuẩn hóa quy trình cập nhật Memory Bank.
+- Nếu không hiển thị dropdown ngân hàng: kiểm tra biến lấy từ store, kiểm tra fetchBanks có được gọi đúng chỗ không.
+- Nếu API bị gọi nhiều lần: kiểm tra các nơi gọi fetchBanks, chỉ giữ lại ở App.vue hoặc layout cha.
+
+---
+
+## 8. Import tài khoản từ Excel & PrimeVue DataTable
+
+- Đã chuyển toàn bộ bảng danh sách import tài khoản từ Excel sang sử dụng PrimeVue DataTable, PrimeColumn.
+- Xử lý selection, thao tác lưu từng dòng, tạo QR, hiển thị lỗi đều qua DataTable.
+- Đã sửa lỗi không hiển thị nút "Lưu" khi dùng PrimeVue DataTable (chuyển sang dùng v-slot cho cột thao tác).
+- Giao diện đồng bộ theme tối, thao tác trực quan, nút "Lưu" luôn hiển thị đúng.
+- Đảm bảo mọi thao tác lưu tài khoản vào Supabase đều hoạt động ổn định, feedback rõ ràng cho người dùng.

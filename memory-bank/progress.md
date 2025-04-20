@@ -13,6 +13,10 @@ Tài liệu này ghi nhận tiến độ, trạng thái hiện tại, những ph
 - Cập nhật các store và utils liên quan.
 - Dọn dẹp code tạo QR cục bộ không còn sử dụng.
 - Cập nhật Memory Bank (systemPatterns, techContext, activeContext).
+- Chuyển bảng import tài khoản từ Excel sang PrimeVue DataTable, PrimeColumn.
+- Xử lý selection, thao tác lưu, tạo QR, hiển thị lỗi từng dòng qua DataTable.
+- Sửa lỗi không hiển thị nút "Lưu" khi dùng PrimeVue DataTable (dùng v-slot cho cột thao tác).
+- Đảm bảo UI/UX đồng bộ, theme tối, thao tác trực quan, feedback rõ ràng.
 
 ### Còn lại
 
