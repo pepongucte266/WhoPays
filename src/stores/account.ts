@@ -20,10 +20,6 @@ export interface SavedAccount {
 export type NewSavedAccountInput = Omit<SavedAccount, 'id' | 'user_id' | 'created_at' | 'bank_code'>
 
 export const useAccountStore = defineStore('account', () => {
-  // --- Dependencies ---
-  const authStore = useAuthStore()
-  const banksStore = useBanksStore() // Khởi tạo banksStore
-
   // --- State ---
   const accounts = ref<SavedAccount[]>([]) // Sử dụng interface đã cập nhật
   const loading = ref<boolean>(false)
@@ -34,7 +30,10 @@ export const useAccountStore = defineStore('account', () => {
   /**
    * Lấy danh sách tài khoản đã lưu của người dùng hiện tại.
    */
-  async function fetchAccounts() {
+  // Cho phép truyền mock store kiểu rộng hơn cho test
+  type MinimalAuthStore = { userId: string }
+  async function fetchAccounts(injectedAuthStore?: MinimalAuthStore) {
+    const authStore = injectedAuthStore || useAuthStore()
     if (!authStore.userId) {
       console.warn('User not logged in, cannot fetch accounts.')
       accounts.value = [] // Xóa danh sách nếu người dùng đăng xuất
@@ -79,7 +78,20 @@ export const useAccountStore = defineStore('account', () => {
    * Thêm một tài khoản mới vào danh sách lưu.
    * @param newAccountInput Dữ liệu tài khoản mới từ form (chỉ chứa bank_bin, account_number, nickname)
    */
-  async function addAccount(newAccountInput: NewSavedAccountInput): Promise<boolean> {
+  // Định nghĩa kiểu BankInfo cho getBankByBin
+  type BankInfo = {
+    bankCode: string
+    caiValue: string
+    bankShortName: string
+  }
+  type MinimalBanksStore = { getBankByBin: (bin: string) => BankInfo | null }
+  async function addAccount(
+    newAccountInput: NewSavedAccountInput,
+    injectedAuthStore?: MinimalAuthStore,
+    injectedBanksStore?: MinimalBanksStore,
+  ): Promise<boolean> {
+    const authStore = injectedAuthStore || useAuthStore()
+    const banksStore = injectedBanksStore || useBanksStore()
     if (!authStore.userId) {
       error.value = 'Bạn cần đăng nhập để lưu tài khoản.'
       return false
@@ -155,7 +167,11 @@ export const useAccountStore = defineStore('account', () => {
    * Xóa một tài khoản đã lưu.
    * @param accountId ID của tài khoản cần xóa
    */
-  async function deleteAccount(accountId: number): Promise<boolean> {
+  async function deleteAccount(
+    accountId: number,
+    injectedAuthStore?: MinimalAuthStore,
+  ): Promise<boolean> {
+    const authStore = injectedAuthStore || useAuthStore()
     if (!authStore.userId) {
       error.value = 'Bạn cần đăng nhập để xóa tài khoản.'
       return false
