@@ -4,7 +4,7 @@ import { useQrStore } from '@/stores/qr'
 import { useBanksStore } from '@/stores/banks'
 import { useAccountStore } from '@/stores/account'
 import * as XLSX from 'xlsx'
-import QrDisplay from './QrDisplay.vue'
+// import QrDisplay from './QrDisplay.vue' // Không còn dùng
 
 const qrStore = useQrStore()
 const banksStore = useBanksStore()
@@ -88,7 +88,6 @@ function generateSelectedQrCodes() {
 const canGenerateMultiple = computed(() => {
   return records.value.length > 0 && records.value.some(r => r.selected) && !isLoading.value;
 });
-
 
 /**
  * Tạo và tải xuống file Excel mẫu.
@@ -227,7 +226,8 @@ async function saveAccountFromExcel(record: ExcelRecord) {
       nhớ/Chủ TK.
     </div>
 
-    <!-- Display generated QR codes from Excel -->
+    <!-- Display generated QR codes from Excel (đã bỏ, dùng popup chung) -->
+    <!--
     <div v-if="records.some(r => r.qrDataUrl)" class="mt-8">
       <h3 class="text-lg font-semibold mb-4 text-green-400">Mã QR Đã Tạo (từ Excel)</h3>
       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -238,6 +238,6 @@ async function saveAccountFromExcel(record: ExcelRecord) {
         </template>
       </div>
     </div>
-
+    -->
   </div>
 </template>

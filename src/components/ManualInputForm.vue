@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useQrStore } from '@/stores/qr'
 import { useBanksStore } from '@/stores/banks'
+import { useAccountStore } from '@/stores/account'
 
 const qrStore = useQrStore()
 const banksStore = useBanksStore()
+const accountStore = useAccountStore()
 
 // Sử dụng đúng computed property từ store
 const bankList = computed(() => banksStore.bankSelectOptions)
@@ -54,12 +56,43 @@ function handleClearForm() {
   qrStore.clearManualForm()
 }
 
+// Popup chọn tài khoản đã lưu
+const showAccountDialog = ref(false)
+const handleShowAccountDialog = async () => {
+  showAccountDialog.value = true
+  if (typeof accountStore.fetchAccounts === 'function') {
+    await accountStore.fetchAccounts()
+  }
+}
+const handleHideAccountDialog = () => showAccountDialog.value = false
+
+// Kiểu cho tài khoản đã lưu
+interface SavedAccount {
+  id: number
+  bank_bin: string
+  account_number: string
+  nickname?: string
+  account_holder?: string
+}
+
+// Khi chọn tài khoản, bind xuống ManualInputForm
+function handleSelectAccount(acc: SavedAccount) {
+  qrStore.manualInput.bankBin = acc.bank_bin
+  qrStore.manualInput.accountNumber = acc.account_number
+  qrStore.manualInput.nickname = acc.nickname || acc.account_holder || ''
+  showAccountDialog.value = false
+}
+
 // ĐÃ XÓA onMounted(() => banksStore.fetchBanks())
 </script>
 
 <template>
   <div class="manual-input-form bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700">
-    <h2 class="text-lg font-semibold mb-4 text-green-400">Tạo QR Thủ Công</h2>
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-semibold text-green-400">Tạo QR Thủ Công</h2>
+      <PrimeButton icon="pi pi-user-plus" class="!p-2 !rounded-full" severity="secondary" :text="true"
+        @click="handleShowAccountDialog" title="Chọn nhanh tài khoản đã lưu" />
+    </div>
     <form @submit.prevent="handleGenerateQr">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         <!-- Bank Selection Dropdown -->
@@ -125,5 +158,27 @@ function handleClearForm() {
         </button>
       </div>
     </form>
+
+    <!-- Popup danh sách tài khoản đã lưu -->
+    <PrimeDialog v-model:visible="showAccountDialog" modal header="Chọn tài khoản đã lưu"
+      :style="{ width: '420px', maxWidth: '96vw' }" content-class="bg-gray-800 p-0" @hide="handleHideAccountDialog">
+      <div class="p-2">
+        <PrimeDataTable :value="accountStore.accounts" dataKey="id" class="p-datatable-sm bg-gray-800 text-gray-200"
+          :rows="8" scrollable scrollHeight="320px">
+          <PrimeColumn field="nickname" header="Tên gợi nhớ/Chủ TK" />
+          <PrimeColumn field="account_number" header="Số tài khoản" />
+          <PrimeColumn field="bank_bin" header="Mã NH/BIN" />
+          <PrimeColumn header="Chọn" style="width: 60px; text-align: center;">
+            <template #body="slotProps">
+              <PrimeButton icon="pi pi-check" class="!p-2 !rounded-full" severity="success" :text="true"
+                @click="() => handleSelectAccount(slotProps.data as SavedAccount)" />
+            </template>
+          </PrimeColumn>
+        </PrimeDataTable>
+        <div v-if="!accountStore.accounts || accountStore.accounts.length === 0" class="text-center text-gray-400 py-4">
+          Không có tài khoản nào được lưu.
+        </div>
+      </div>
+    </PrimeDialog>
   </div>
 </template>

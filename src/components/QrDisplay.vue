@@ -1,19 +1,28 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useQrStore } from '@/stores/qr'
-// import { ArrowDownTrayIcon } from '@heroicons/vue/24/solid' // Removed Heroicon
+import { getBankLogoUrl } from '@/utils/vietqr'
+import { useBanksStore } from '@/stores/banks'
 
 const qrStore = useQrStore()
+const banksStore = useBanksStore()
 
-// Props để nhận dữ liệu QR từ component cha (ví dụ: HomeView)
-// Điều này giúp component linh hoạt hơn, có thể hiển thị QR đơn lẻ hoặc QR từ Excel
 const props = defineProps<{
   qrDataUrl: string | null | undefined
   accountNumber: string | undefined
   amount: number | undefined
   purpose?: string | undefined
-  downloadHandler?: () => void // Hàm xử lý download tùy chỉnh (ví dụ: downloadSingleQr hoặc downloadExcelQr)
-  recordId?: number // ID của bản ghi Excel (nếu có, để dùng cho downloadExcelQr)
+  downloadHandler?: () => void
+  recordId?: number
+  bankBin?: string
+  bankName?: string
+  userBankName?: string
+  imgId?: string
+  showNav?: boolean
+  canPrev?: boolean
+  canNext?: boolean
+  onPrev?: () => void
+  onNext?: () => void
 }>()
 
 const displayAmount = computed(() => {
@@ -23,16 +32,25 @@ const displayAmount = computed(() => {
 
 const displayPurpose = computed(() => props.purpose || 'Không có')
 
-const canDownload = computed(() => !!props.qrDataUrl && !!props.downloadHandler)
+// Ưu tiên imgId, nếu không có thì lấy từ bankBin (Excel)
+const logoUrl = computed(() => {
+  if (props.imgId) return getBankLogoUrl(props.imgId)
+  if (props.bankBin) {
+    const bank = banksStore.getBankByBin(props.bankBin)
+    if (bank?.imageId) return getBankLogoUrl(bank.imageId)
+  }
+  return null
+})
+
+// Sửa lại điều kiện: chỉ cần có qrDataUrl là cho phép tải
+const canDownload = computed(() => !!props.qrDataUrl)
 
 function handleDownload() {
   if (props.downloadHandler) {
     props.downloadHandler()
   } else if (props.recordId !== undefined) {
-    // Fallback nếu không có handler nhưng có recordId (trường hợp QR từ Excel)
     qrStore.downloadExcelQr(props.recordId)
   } else {
-    // Fallback cho QR đơn lẻ nếu không có handler
     qrStore.downloadSingleQr()
   }
 }
@@ -40,24 +58,44 @@ function handleDownload() {
 
 <template>
   <div v-if="qrDataUrl"
-    class="qr-display bg-gray-700 p-4 rounded-lg shadow border border-gray-600 text-center flex flex-col items-center">
-    <h3 class="text-md font-medium mb-3 text-gray-200">Mã VietQR</h3>
-    <img :src="qrDataUrl" alt="VietQR Code"
-      class="w-48 h-48 md:w-56 md:h-56 object-contain bg-white p-1 rounded mb-4" />
-
-    <div class="text-xs text-gray-300 space-y-1 mb-4 text-left w-full px-2">
-      <p><span class="font-medium text-gray-400">Số TK:</span> {{ accountNumber || 'N/A' }}</p>
-      <p><span class="font-medium text-gray-400">Số tiền:</span> {{ displayAmount }}</p>
-      <p><span class="font-medium text-gray-400">Nội dung:</span> <span class="break-words">{{ displayPurpose }}</span>
-      </p>
+    class="qr-popup-ui relative flex flex-col items-center mx-auto rounded-2xl shadow-2xl border border-[#232e4d] overflow-hidden"
+    style="background: linear-gradient(135deg, #111C44 60%, #1B2559 100%); min-width: 340px; max-width: 424px; padding: 20px;">
+    <!-- Header: Logo ngân hàng, số tài khoản, tên chủ tài khoản -->
+    <div class="flex flex-col items-center w-full mb-5">
+      <img v-if="logoUrl" :src="logoUrl" alt="Logo ngân hàng"
+        class="h-14 w-[150px] object-contain rounded-lg bg-white shadow-sm mb-2" />
+      <div class="text-[18px] font-semibold text-[#2CD7A5] tracking-wider mb-1">{{ accountNumber || 'N/A' }}</div>
+      <div class="text-[14px] font-medium text-white truncate max-w-[180px]">{{ userBankName || '-' }}</div>
     </div>
-
-    <button v-if="canDownload" @click="handleDownload" title="Tải xuống mã QR"
-      class="mt-auto px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-md transition duration-200 ease-in-out flex items-center">
-      <i class="pi pi-download h-4 w-4 mr-1"></i> <!-- Replaced with PrimeIcon -->
-      Tải xuống (PNG)
-    </button>
-    <p v-else class="mt-auto text-xs text-gray-500 italic">Không thể tải xuống</p>
+    <!-- QR code + navigation -->
+    <div class="relative flex items-center justify-center w-full">
+      <PrimeButton v-if="showNav" class="absolute left-0 top-1/2 -translate-y-1/2 z-10 !p-3 !rounded-full"
+        :icon="'pi pi-angle-left'" severity="secondary" :text="true" :disabled="!canPrev" @click="onPrev"
+        style="margin-left: -8px;" />
+      <img :src="qrDataUrl" alt="VietQR Code"
+        class="w-52 h-52 object-contain rounded-lg bg-white p-2 mt-[20px] mb-[20px] shadow-lg border-[6px] border-white" />
+      <PrimeButton v-if="showNav" class="absolute right-0 top-1/2 -translate-y-1/2 z-10 !p-3 !rounded-full"
+        :icon="'pi pi-angle-right'" severity="secondary" :text="true" :disabled="!canNext" @click="onNext"
+        style="margin-right: -8px;" />
+    </div>
+    <!-- Số tiền -->
+    <div v-if="props.amount && props.amount > 0" class="flex flex-col items-center w-full mt-2 mb-1 space-y-1">
+      <div class="text-[#A3AED0] text-[11px] font-medium uppercase tracking-widest">Số tiền</div>
+      <div class="text-[18px] font-bold text-[#FFD600]">{{ displayAmount }}</div>
+    </div>
+    <!-- Nội dung chuyển khoản -->
+    <div v-if="props.purpose && props.purpose.trim().length > 0"
+      class="flex flex-col items-center w-full mb-2 space-y-1">
+      <div class="text-[#A3AED0] text-[11px] font-medium uppercase tracking-widest">Nội dung chuyển khoản</div>
+      <div class="text-[13px] font-semibold text-[#60A5FA] text-center break-words max-w-[220px]">{{ displayPurpose }}
+      </div>
+    </div>
+    <div class="w-full h-[1px] bg-[#232e4d] my-2"></div>
+    <!-- Nút tải xuống -->
+    <PrimeButton v-if="canDownload" @click="handleDownload" title="Tải xuống mã QR"
+      class="mt-auto mb-1 !p-3 !rounded-full !shadow-lg flex items-center justify-center" severity="primary"
+      :icon="'pi pi-download'" :aria-label="'Tải xuống mã QR'" :text="true" :rounded="true" />
+    <p v-else class="mt-auto text-xs text-gray-300 italic mb-2">Không thể tải xuống</p>
   </div>
   <div v-else
     class="qr-display-placeholder bg-gray-700 p-6 rounded-lg shadow border border-gray-600 text-center flex flex-col items-center justify-center min-h-[300px]">

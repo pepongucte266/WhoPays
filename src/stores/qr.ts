@@ -1,17 +1,18 @@
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { defineStore } from 'pinia'
-import { fetchVietQRStringFromAPI, type VietQRAPIData, type VietQRData } from '@/utils/vietqr'
+import {
+  fetchVietQRStringFromAPI,
+  type VietQRAPIData,
+  type VietQRData,
+  type VietQRAPIResponse,
+} from '@/utils/vietqr'
 import { useBanksStore } from '@/stores/banks'
 import QRCode from 'qrcode'
 import * as XLSX from 'xlsx'
 
 // Hàm loại bỏ dấu tiếng Việt khỏi chuỗi
 function removeVietnameseDiacritics(str: string): string {
-  return str
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/đ/g, 'd')
-    .replace(/Đ/g, 'D')
+  return str.normalize('NFD').replace(/[-]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D')
 }
 
 export interface ExcelRecord extends VietQRData {
@@ -19,6 +20,16 @@ export interface ExcelRecord extends VietQRData {
   selected?: boolean
   qrDataUrl?: string
   error?: string
+}
+
+export interface QrDisplayData {
+  qrDataUrl: string
+  accountNumber: string
+  amount?: number
+  purpose?: string
+  userBankName?: string
+  imgId?: string
+  bankBin?: string
 }
 
 export const useQrStore = defineStore('qr', () => {
@@ -34,6 +45,7 @@ export const useQrStore = defineStore('qr', () => {
   })
   const generatedQrString = ref<string | null>(null)
   const generatedQrDataUrl = ref<string | null>(null)
+  const generatedQrResponse = ref<VietQRAPIResponse | null>(null) // Lưu toàn bộ response từ API
 
   const excelRecords = ref<ExcelRecord[]>([])
   const isProcessingExcel = ref<boolean>(false)
@@ -41,6 +53,67 @@ export const useQrStore = defineStore('qr', () => {
 
   const isGeneratingQr = ref<boolean>(false)
   const generationError = ref<string | null>(null)
+
+  // --- QR Navigation State ---
+  const currentQrIndex = ref<number>(0)
+  const showQrDialog = ref<boolean>(false)
+
+  // --- Computed for navigation ---
+  const qrList = computed<QrDisplayData[]>(() => {
+    // Nếu có QR từ excelRecords, ưu tiên hiển thị danh sách này
+    const excelQrs = excelRecords.value.filter((r) => r.qrDataUrl)
+    if (excelQrs.length > 0) {
+      return excelQrs.map((r) => ({
+        qrDataUrl: r.qrDataUrl!,
+        accountNumber: r.accountNumber,
+        amount: r.amount,
+        purpose: r.purpose,
+        userBankName: r.nickname,
+        imgId: undefined, // Không có imgId từ excel, có thể bổ sung nếu cần
+        bankBin: r.bankBin,
+      }))
+    }
+    // Nếu không, chỉ có 1 QR đơn lẻ
+    if (generatedQrDataUrl.value) {
+      return [
+        {
+          qrDataUrl: generatedQrDataUrl.value,
+          accountNumber: manualInput.accountNumber,
+          amount: manualInput.amount,
+          purpose: manualInput.purpose,
+          userBankName: generatedQrResponse.value?.userBankName || manualInput.nickname,
+          imgId: generatedQrResponse.value?.imgId,
+          bankBin: manualInput.bankBin,
+        },
+      ]
+    }
+    return []
+  })
+  const totalQrCount = computed(() => qrList.value.length)
+  const currentQr = computed(() => qrList.value[currentQrIndex.value] || null)
+
+  function nextQr() {
+    if (currentQrIndex.value < totalQrCount.value - 1) {
+      currentQrIndex.value++
+    }
+  }
+  function prevQr() {
+    if (currentQrIndex.value > 0) {
+      currentQrIndex.value--
+    }
+  }
+  function setCurrentQr(idx: number) {
+    if (idx >= 0 && idx < totalQrCount.value) {
+      currentQrIndex.value = idx
+    }
+  }
+  function openQrDialog(idx = 0) {
+    setCurrentQr(idx)
+    showQrDialog.value = true
+  }
+  function closeQrDialog() {
+    showQrDialog.value = false
+  }
 
   // --- Actions ---
 
@@ -52,6 +125,7 @@ export const useQrStore = defineStore('qr', () => {
     generationError.value = null
     generatedQrString.value = null
     generatedQrDataUrl.value = null
+    generatedQrResponse.value = null
 
     try {
       if (!manualInput.bankBin || !manualInput.accountNumber) {
@@ -85,11 +159,15 @@ export const useQrStore = defineStore('qr', () => {
         content: contentNoDiacritics,
       }
 
-      const qrString = await fetchVietQRStringFromAPI(apiData)
-      generatedQrString.value = qrString
+      const qrResponse = await fetchVietQRStringFromAPI(apiData)
+      generatedQrResponse.value = qrResponse
+      generatedQrString.value = qrResponse.qrCode
 
-      const dataUrl = await QRCode.toDataURL(qrString, { errorCorrectionLevel: 'M' })
+      const dataUrl = await QRCode.toDataURL(qrResponse.qrCode, { errorCorrectionLevel: 'M' })
       generatedQrDataUrl.value = dataUrl
+
+      // Mở popup QR đơn lẻ
+      openQrDialog(0)
     } catch (error: unknown) {
       console.error('Error generating single QR code:', error)
       generationError.value =
@@ -108,6 +186,7 @@ export const useQrStore = defineStore('qr', () => {
     generatedQrString.value = null
     generatedQrDataUrl.value = null
     generationError.value = null
+    generatedQrResponse.value = null
   }
 
   async function importFromExcel(file: File) {
@@ -281,8 +360,10 @@ export const useQrStore = defineStore('qr', () => {
             content: contentNoDiacritics,
           }
 
-          const qrString = await fetchVietQRStringFromAPI(apiData)
-          record.qrDataUrl = await QRCode.toDataURL(qrString, { errorCorrectionLevel: 'M' })
+          const qrResponse = await fetchVietQRStringFromAPI(apiData)
+          record.qrDataUrl = await QRCode.toDataURL(qrResponse.qrCode, {
+            errorCorrectionLevel: 'M',
+          })
         } catch (error: unknown) {
           console.error(`Error generating QR for record ${record.id}:`, error)
           record.error = error instanceof Error ? error.message : 'Lỗi tạo QR.'
@@ -292,6 +373,11 @@ export const useQrStore = defineStore('qr', () => {
 
     excelRecords.value = [...excelRecords.value]
     isProcessingExcel.value = false
+
+    // Sau khi tạo xong, mở popup QR ở vị trí đầu tiên
+    if (excelRecords.value.filter((r) => r.qrDataUrl).length > 0) {
+      openQrDialog(0)
+    }
   }
 
   function triggerDownload(dataUrl: string, filename: string) {
@@ -322,6 +408,7 @@ export const useQrStore = defineStore('qr', () => {
     manualInput,
     generatedQrString,
     generatedQrDataUrl,
+    generatedQrResponse,
     isGeneratingQr,
     generationError,
     generateSingleQrCode,
@@ -334,5 +421,17 @@ export const useQrStore = defineStore('qr', () => {
     importFromExcel,
     generateMultipleQrCodes,
     downloadExcelQr,
+
+    // QR navigation
+    currentQrIndex,
+    showQrDialog,
+    qrList,
+    totalQrCount,
+    currentQr,
+    nextQr,
+    prevQr,
+    setCurrentQr,
+    openQrDialog,
+    closeQrDialog,
   }
 })

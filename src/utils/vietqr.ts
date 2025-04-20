@@ -25,12 +25,35 @@ export interface VietQRAPIData {
 }
 
 /**
+ * Interface for the response from the VietQR API.
+ */
+export interface VietQRAPIResponse {
+  bankCode: string
+  bankName: string
+  bankAccount: string
+  userBankName: string
+  amount: string
+  content: string
+  qrCode: string
+  imgId: string
+  existing?: number
+  transactionId?: string
+  transactionRefId?: string
+  qrLink?: string
+  terminalCode?: string
+  subTerminalCode?: string | null
+  serviceCode?: string | null
+  orderId?: string | null
+  additionalData?: unknown[]
+}
+
+/**
  * Fetches the VietQR string from the external VietQR API.
  * @param data Data required for the API call (using API field names).
- * @returns The VietQR string (qrCode field from the API response).
+ * @returns The full API response (including qrCode, userBankName, ...).
  * @throws Throws an error if the API call fails or returns an error message.
  */
-export async function fetchVietQRStringFromAPI(data: VietQRAPIData): Promise<string> {
+export async function fetchVietQRStringFromAPI(data: VietQRAPIData): Promise<VietQRAPIResponse> {
   const apiUrl = 'https://api.vietqr.org/vqr/api/qr/generate/unauthenticated'
 
   // Prepare the request body, ensuring amount is a string if present
@@ -47,7 +70,6 @@ export async function fetchVietQRStringFromAPI(data: VietQRAPIData): Promise<str
       method: 'POST',
       headers: {
         'Content-Type': 'application/json; charset=utf-8',
-        // Add other necessary headers from curl if needed
         'Cache-Control': 'no-cache',
         Referer: 'https://vietqr.vn/',
       },
@@ -56,18 +78,15 @@ export async function fetchVietQRStringFromAPI(data: VietQRAPIData): Promise<str
 
     const responseData = await response.json()
 
-    // API trả về cấu trúc có thể khác nhau, cần kiểm tra kỹ
     if (!response.ok || !responseData.qrCode) {
-      // Cố gắng lấy message lỗi từ các cấu trúc response khác nhau
       const errorMessage =
         responseData?.message || responseData?.desc || 'Failed to generate VietQR string.'
       throw new Error(`Lỗi API VietQR: ${errorMessage} (Status: ${response.status})`)
     }
 
-    return responseData.qrCode
+    return responseData as VietQRAPIResponse
   } catch (error) {
     console.error('Error fetching VietQR from API:', error)
-    // Re-throw error để store xử lý
     if (error instanceof Error) {
       throw error
     } else {
@@ -88,6 +107,13 @@ export interface BankData {
   status: number
   caiValue: string // Mã BIN (970...)
   unlinkedType: number
+}
+
+/**
+ * Helper to get bank logo URL from imgId (VietQR API).
+ */
+export function getBankLogoUrl(imgId: string): string {
+  return `https://api.vietqr.org/vqr/api/images/${imgId}`
 }
 
 // Fallback data using the raw API structure
