@@ -6,10 +6,15 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 
-// PrimeVue setup
 import PrimeVue from 'primevue/config'
 import Aura from '@primeuix/themes/aura'
 import 'primeicons/primeicons.css' // Import PrimeIcons CSS
+
+import ConfirmationService from 'primevue/confirmationservice'
+import ConfirmDialog from 'primevue/confirmdialog'
+import ToastService from 'primevue/toastservice'
+import Toast from 'primevue/toast'
+import SplitButton from 'primevue/splitbutton'
 
 import Select from 'primevue/select' // Use Select instead of deprecated Dropdown
 import Button from 'primevue/button'
@@ -33,6 +38,8 @@ app.use(PrimeVue, {
     },
   },
 })
+app.use(ConfirmationService)
+app.use(ToastService)
 
 // Register PrimeVue components globally with "Prime" prefix
 app.component('PrimeSelect', Select)
@@ -42,5 +49,8 @@ app.component('PrimeInputNumber', InputNumber)
 app.component('PrimeDataTable', DataTable)
 app.component('PrimeColumn', Column)
 app.component('PrimeDialog', Dialog)
+app.component('PrimeConfirmDialog', ConfirmDialog)
+app.component('PrimeToast', Toast)
+app.component('PrimeSplitButton', SplitButton)
 
 app.mount('#app')

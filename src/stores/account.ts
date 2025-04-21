@@ -62,8 +62,6 @@ export const useAccountStore = defineStore('account', () => {
         nickname: item.nickname,
         created_at: item.created_at,
       })) as SavedAccount[] // Ép kiểu để đảm bảo type safety
-
-      console.log('Fetched user accounts:', accounts.value)
     } catch (err: unknown) {
       console.error('Error fetching accounts:', err)
       error.value =
@@ -201,6 +199,48 @@ export const useAccountStore = defineStore('account', () => {
     }
   }
 
+  /**
+   * Xóa nhiều tài khoản đã lưu.
+   * @param accountIds Mảng ID của các tài khoản cần xóa
+   */
+  async function deleteAccounts(
+    accountIds: number[],
+    injectedAuthStore?: MinimalAuthStore,
+  ): Promise<boolean> {
+    const authStore = injectedAuthStore || useAuthStore()
+    if (!authStore.userId) {
+      error.value = 'Bạn cần đăng nhập để xóa tài khoản.'
+      return false
+    }
+    if (!Array.isArray(accountIds) || accountIds.length === 0) {
+      error.value = 'Không có tài khoản nào được chọn để xóa.'
+      return false
+    }
+
+    loading.value = true
+    error.value = null
+    try {
+      const { error: deleteError } = await supabase
+        .from('user_accounts')
+        .delete()
+        .in('id', accountIds)
+        .eq('user_id', authStore.userId)
+
+      if (deleteError) throw deleteError
+
+      // Xóa khỏi danh sách state sau khi xóa thành công trên DB
+      accounts.value = accounts.value.filter((acc) => !accountIds.includes(acc.id))
+      console.log('Accounts deleted successfully:', accountIds)
+      return true
+    } catch (err: unknown) {
+      console.error('Error deleting accounts:', err)
+      error.value = err instanceof Error ? err.message : 'Lỗi không xác định khi xóa tài khoản.'
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
   // --- Return ---
   return {
     accounts,
@@ -209,5 +249,6 @@ export const useAccountStore = defineStore('account', () => {
     fetchAccounts,
     addAccount,
     deleteAccount,
+    deleteAccounts,
   }
 })
