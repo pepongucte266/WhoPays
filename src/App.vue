@@ -48,6 +48,8 @@ async function handleLogout() {
 
     <main class="flex-1 flex justify-center">
       <RouterView />
+      <PrimeConfirmDialog />
+      <PrimeToast />
     </main>
 
     <footer
