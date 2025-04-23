@@ -23,6 +23,7 @@ import InputNumber from 'primevue/inputnumber'
 import DataTable from 'primevue/datatable' // Import DataTable
 import Column from 'primevue/column' // Import Column
 import Dialog from 'primevue/dialog' // Import Dialog
+import Checkbox from 'primevue/checkbox' // Import Checkbox
 
 const app = createApp(App)
 
@@ -52,5 +53,6 @@ app.component('PrimeDialog', Dialog)
 app.component('PrimeConfirmDialog', ConfirmDialog)
 app.component('PrimeToast', Toast)
 app.component('PrimeSplitButton', SplitButton)
+app.component('PrimeCheckbox', Checkbox)
 
 app.mount('#app')
