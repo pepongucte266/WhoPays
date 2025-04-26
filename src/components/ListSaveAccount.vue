@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, reactive } from 'vue'
 import { useAccountStore } from '@/stores/account'
+import type { SavedAccount } from '@/stores/account' // Import SavedAccount từ store
 
 // Props
 const props = defineProps<{
@@ -17,21 +18,14 @@ const emit = defineEmits<{
 
 const accountStore = useAccountStore()
 
-type SavedAccount = {
-  id: number
-  bank_bin: string
-  account_number: string
-  nickname?: string
-  account_holder?: string
-  bank_code?: string
-}
+// Xóa định nghĩa SavedAccount cục bộ
 
-type AccountGroup = { idGroup: string; nickname: string; accounts: SavedAccount[] }
+type AccountGroup = { idGroup: string; nickname: string; accounts: SavedAccount[] } // Sử dụng SavedAccount đã import
 const expandedRows = ref<Record<string, boolean>>({})
 // const selectedAccounts = ref<SavedAccount[]>([])
 
 // Selection for child tables: { [groupId]: SavedAccount[] }
-const selectedChildAccounts = reactive<Record<string, SavedAccount[]>>({})
+const selectedChildAccounts = reactive<Record<string, SavedAccount[]>>({}) // Sử dụng SavedAccount đã import
 
 const groupedAccountsWithId = computed<AccountGroup[]>(() =>
   accountStore.groupedAccounts.map((g, idx) => ({
@@ -41,9 +35,7 @@ const groupedAccountsWithId = computed<AccountGroup[]>(() =>
   }))
 )
 
-function accountCountBody(row: { accounts: SavedAccount[] }) {
-  return row.accounts.length
-}
+// Xóa hàm accountCountBody không sử dụng
 
 function handleClose() {
   localVisible.value = false
@@ -134,7 +126,7 @@ function onRowClick(event: { data: AccountGroup; originalEvent: MouseEvent }) {
         <template #expansion="slotProps">
           <PrimeDataTable :value="slotProps.data.accounts" dataKey="id" class="p-datatable-sm bg-gray-900 text-gray-200"
             showHeader="false" selectionMode="multiple" :selection="selectedChildAccounts[slotProps.data.idGroup] || []"
-            @update:selection="val => selectedChildAccounts[slotProps.data.idGroup] = val">
+            @update:selection="(val: SavedAccount[]) => selectedChildAccounts[slotProps.data.idGroup] = val">
             <PrimeColumn selectionMode="multiple" style="width: 40px; min-width: 40px; max-width: 40px;" />
             <PrimeColumn field="account_number" style="width: 40%; min-width: 120px;" />
             <PrimeColumn field="bank_code" style="width: 25%; min-width: 80px;" />
