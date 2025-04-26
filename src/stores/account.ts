@@ -4,6 +4,23 @@ import { supabase } from '@/lib/supabaseClient'
 import { useAuthStore } from './auth' // Import authStore để lấy user ID và role
 import { useBanksStore } from './banks' // Import banksStore
 
+// --- Exported Types ---
+// Di chuyển các type ra ngoài để có thể export và sử dụng trong test
+
+// Định nghĩa type riêng cho fetchAccounts để bao gồm userRole
+export type FetchAuthStore = { userId: string | undefined; userRole: string | undefined }
+
+// Định nghĩa type cho các hàm chỉ cần userId
+export type MinimalAuthStore = { userId: string | undefined }
+
+// Định nghĩa kiểu BankInfo cho getBankByBin
+export type BankInfo = {
+  bankCode: string
+  caiValue: string
+  bankShortName: string
+}
+export type MinimalBanksStore = { getBankByBin: (bin: string) => BankInfo | null }
+
 // Định nghĩa cấu trúc dữ liệu cho một tài khoản đã lưu
 // Bao gồm cả bank_bin và bank_code
 export interface SavedAccount {
@@ -52,8 +69,7 @@ export const useAccountStore = defineStore('account', () => {
    * Nếu không truyền, mặc định lấy theo user hiện tại.
    * Nếu user là 'manager', lấy tất cả tài khoản.
    */
-  // Định nghĩa type riêng cho fetchAccounts để bao gồm userRole
-  type FetchAuthStore = { userId: string | undefined; userRole: string | undefined }
+  // Sử dụng type FetchAuthStore đã export
   async function fetchAccounts(injectedAuthStore?: FetchAuthStore, overrideUserId?: string) {
     const authStore = injectedAuthStore || useAuthStore()
     const targetUserId = overrideUserId || authStore.userId
@@ -109,15 +125,7 @@ export const useAccountStore = defineStore('account', () => {
    * Thêm một tài khoản mới vào danh sách lưu.
    * @param newAccountInput Dữ liệu tài khoản mới từ form (chỉ chứa bank_bin, account_number, nickname)
    */
-  // Định nghĩa type cho các hàm chỉ cần userId
-  type MinimalAuthStore = { userId: string | undefined }
-  // Định nghĩa kiểu BankInfo cho getBankByBin
-  type BankInfo = {
-    bankCode: string
-    caiValue: string
-    bankShortName: string
-  }
-  type MinimalBanksStore = { getBankByBin: (bin: string) => BankInfo | null }
+  // Sử dụng các type MinimalAuthStore và MinimalBanksStore đã export
   async function addAccount(
     newAccountInput: NewSavedAccountInput,
     injectedAuthStore?: MinimalAuthStore,

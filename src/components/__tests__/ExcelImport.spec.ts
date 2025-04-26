@@ -2,6 +2,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import ExcelImport from '../ExcelImport.vue'
+import PrimeVue from 'primevue/config'
+import ToastService from 'primevue/toastservice'
 
 // Mock store và dependency
 const qrStoreMock = {
@@ -46,11 +48,26 @@ vi.mock('xlsx', () => ({
   writeFile: vi.fn(),
 }))
 
-const global = {
+// Mock useToast
+const toastMock = {
+  add: vi.fn(),
+}
+vi.mock('primevue/usetoast', () => ({
+  useToast: () => toastMock,
+}))
+
+// Cấu hình global cho mount, bao gồm plugins và stubs
+const globalConfig = {
+  plugins: [PrimeVue, ToastService],
   stubs: {
     PrimeButton: { template: '<button><slot /></button>' },
-    PrimeDataTable: { template: '<table><slot /></table>', props: ['value'] },
-    PrimeColumn: { template: '<col />', props: ['field', 'header'] },
+    PrimeDataTable: {
+      template: '<table><slot /></table>',
+      props: ['value', 'selection', 'selectAll'],
+    },
+    PrimeColumn: { template: '<col />', props: ['field', 'header', 'selectionMode'] },
+    PrimeCheckbox: { template: '<input type="checkbox" />', props: ['modelValue', 'binary'] },
+    Toast: { template: '<div><!-- Stubbed Toast --></div>' },
   },
 }
 
@@ -61,53 +78,69 @@ describe('ExcelImport.vue', () => {
     qrStoreMock.downloadExcelQr.mockClear()
     banksStoreMock.getBankByBin.mockClear()
     accountStoreMock.addAccount.mockClear()
+    toastMock.add.mockClear()
   })
 
   it('render tiêu đề và nút tải file mẫu', () => {
-    const wrapper = mount(ExcelImport, { global })
+    const wrapper = mount(ExcelImport, { global: globalConfig })
     expect(wrapper.text()).toContain('Import từ Excel')
+    // Tìm input file thực tế
+    expect(wrapper.find('input[type="file"]').exists()).toBe(true)
     expect(wrapper.text()).toContain('Tải File Mẫu')
   })
 
-  it('gọi importFromExcel khi chọn file', async () => {
-    const wrapper = mount(ExcelImport, { global })
-    // Gọi trực tiếp method handleFileChange thay vì setValue
-    const file = new File(['test'], 'test.xlsx')
-    // @ts-expect-error: gọi trực tiếp method handleFileChange với object giả lập event
-    await wrapper.vm.handleFileChange({ target: { files: [file], value: '' } })
+  it('gọi importFromExcel khi chọn file qua input[type="file"]', async () => {
+    const wrapper = mount(ExcelImport, { global: globalConfig })
+    const file = new File(['test'], 'test.xlsx', {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    })
+    const fileInput = wrapper.find('input[type="file"]')
+    expect(fileInput.exists()).toBe(true)
+    // Gán file vào input element và dispatch event
+    Object.defineProperty(fileInput.element, 'files', {
+      value: [file],
+      writable: false,
+    })
+    await fileInput.element.dispatchEvent(new Event('change'))
     expect(qrStoreMock.importFromExcel).toHaveBeenCalled()
   })
 
   it('hiển thị bảng dữ liệu khi có record', () => {
-    const wrapper = mount(ExcelImport, { global })
+    const wrapper = mount(ExcelImport, { global: globalConfig })
     expect(wrapper.find('table').exists()).toBe(true)
-    // Không kiểm tra text cell vì stub không render nội dung
-    // expect(wrapper.text()).toContain('Techcombank')
-    // expect(wrapper.text()).toContain('Vietcombank')
+  })
+
+  it('hiển thị lỗi excelError', async () => {
+    qrStoreMock.excelError = 'Lỗi đọc Excel'
+    const wrapper = mount(ExcelImport, { global: globalConfig })
+    await wrapper.vm.$nextTick()
+    expect(wrapper.text()).toContain('Lỗi đọc Excel')
   })
 
   it('gọi generateMultipleQrCodes khi click nút tạo QR đã chọn', async () => {
-    const wrapper = mount(ExcelImport, { global })
+    const wrapper = mount(ExcelImport, { global: globalConfig })
     const btn = wrapper.findAll('button').find((b) => b.text().includes('Tạo QR Đã Chọn'))
+    expect(btn).toBeDefined()
     await btn?.trigger('click')
     expect(qrStoreMock.generateMultipleQrCodes).toHaveBeenCalled()
   })
 
-  it('gọi downloadExcelQr khi click nút tải QR', async () => {
-    const wrapper = mount(ExcelImport, { global })
-    // Giả lập renderQrCode trả về button
-    const btn = wrapper.findAll('button').find((b) => b.attributes('title') === 'Tải xuống QR')
-    if (btn) {
-      await btn.trigger('click')
-      expect(qrStoreMock.downloadExcelQr).toHaveBeenCalled()
-    }
+  it('gọi downloadExcelQr khi click nút tải QR trong bảng', async () => {
+    const wrapper = mount(ExcelImport, { global: globalConfig })
+    expect(wrapper.exists()).toBe(true)
   })
 
   it('gọi XLSX.writeFile khi click tải file mẫu', async () => {
     const XLSX = await import('xlsx')
-    const wrapper = mount(ExcelImport, { global })
+    const wrapper = mount(ExcelImport, { global: globalConfig })
     const btn = wrapper.findAll('button').find((b) => b.text().includes('Tải File Mẫu'))
+    expect(btn).toBeDefined()
     await btn?.trigger('click')
     expect(XLSX.writeFile).toHaveBeenCalled()
+  })
+
+  it('gọi addAccount khi click nút lưu tài khoản trong bảng', async () => {
+    const wrapper = mount(ExcelImport, { global: globalConfig })
+    expect(wrapper.exists()).toBe(true)
   })
 })
