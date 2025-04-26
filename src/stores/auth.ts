@@ -13,6 +13,7 @@ export const useAuthStore = defineStore('auth', () => {
   // Getters
   const isLoggedIn = computed(() => !!user.value)
   const userId = computed(() => user.value?.id)
+  const userRole = computed(() => user.value?.app_metadata?.role as string | undefined)
 
   // Actions
   async function initializeAuthListener() {
@@ -147,6 +148,7 @@ export const useAuthStore = defineStore('auth', () => {
     error,
     isLoggedIn,
     userId,
+    userRole, // Expose userRole
     initializeAuthListener,
     signUp,
     signIn,

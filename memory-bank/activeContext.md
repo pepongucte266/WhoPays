@@ -28,3 +28,15 @@
 - Dữ liệu bind trực tiếp vào qrStore.manualInput.
 - Nhấn "Tạo QR" sẽ gọi generateSingleQrCode, hiển thị popup QR.
 - Giao diện sử dụng PrimeVue cho dialog, button, datatable, input.
+
+## Phân quyền & Tự động cập nhật tài khoản (2025-04-26)
+
+- **Phân quyền:**
+  - User thường chỉ xem/quản lý tài khoản của mình.
+  - User có role 'manager' (lưu trong `app_metadata.role` trên Supabase) có thể xem tất cả tài khoản.
+  - Logic kiểm tra role được thực hiện trong `accountStore.fetchAccounts`.
+- **Tự động cập nhật:**
+  - `accountStore` giờ đây có `watch` theo dõi `authStore.userId`.
+  - Khi user đăng nhập/thay đổi, `fetchAccounts` được gọi tự động để lấy đúng danh sách tài khoản (theo quyền).
+  - Khi user đăng xuất, state `accounts` được clear.
+  - Điều này giải quyết lỗi không hiển thị đúng danh sách tài khoản khi đổi user.

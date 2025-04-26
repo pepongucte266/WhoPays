@@ -17,7 +17,8 @@ Tài liệu này mô tả kiến trúc tổng thể, các quyết định kỹ t
 - Trang đăng nhập/đăng ký (LoginView, RegisterView)
 - Trang chính (HomeView) hiển thị, tìm kiếm, quản lý tài khoản.
 - Thành phần nhập liệu thủ công (ManualInputForm) và import Excel (ExcelImport).
-- Thành phần hiển thị mã QR (QrDisplay), quản lý tài khoản (SavedAccounts).
+- Thành phần hiển thị mã QR (QrDisplay).
+- Popup chọn tài khoản đã lưu chỉ còn trong ManualInputForm.vue, SavedAccounts.vue đã deprecated.
 
 ### Mẫu thiết kế
 
@@ -29,6 +30,7 @@ Tài liệu này mô tả kiến trúc tổng thể, các quyết định kỹ t
 
 - Đăng nhập → HomeView → Nhập/Import tài khoản → Gọi API VietQR để sinh mã QR → Lưu & quản lý.
 - Mọi thao tác đều xác thực qua Supabase.
+- **Phân quyền:** User thường chỉ xem/quản lý tài khoản của mình. User có role 'manager' (lưu trong `app_metadata.role`) có thể xem tất cả tài khoản.
 
 ### Quyết định kỹ thuật then chốt
 

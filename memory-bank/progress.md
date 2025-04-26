@@ -19,3 +19,7 @@
 - Đã tối ưu test cho môi trường CI/CD: không phụ thuộc DOM thực, không phụ thuộc file thật, không lỗi khi chạy trên môi trường headless.
 - Đã kiểm tra lại coverage, các case chính đều pass, không còn failed case hoặc lỗi typescript.
 - Sẵn sàng mở rộng test cho các component, store, utils còn lại nếu cần.
+
+---
+
+**Ghi chú:** File SavedAccounts.vue đã deprecated, có thể xóa khỏi project để tránh nhầm lẫn hoặc code thừa.

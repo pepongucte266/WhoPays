@@ -1,7 +1,7 @@
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue' // Thêm watch
 import { defineStore } from 'pinia'
 import { supabase } from '@/lib/supabaseClient'
-import { useAuthStore } from './auth' // Import authStore để lấy user ID
+import { useAuthStore } from './auth' // Import authStore để lấy user ID và role
 import { useBanksStore } from './banks' // Import banksStore
 
 // Định nghĩa cấu trúc dữ liệu cho một tài khoản đã lưu
@@ -28,45 +28,78 @@ export const useAccountStore = defineStore('account', () => {
   // --- Actions ---
 
   /**
-   * Lấy danh sách tài khoản đã lưu của người dùng hiện tại.
+   * Getter: Gom các tài khoản theo tên chủ tài khoản (nickname)
+   * Trả về mảng các group: { nickname, accounts }
    */
-  // Cho phép truyền mock store kiểu rộng hơn cho test
-  type MinimalAuthStore = { userId: string }
-  async function fetchAccounts(injectedAuthStore?: MinimalAuthStore) {
+  const groupedAccounts = computed(() => {
+    // Nếu nickname null/undefined thì gán là 'Không rõ'
+    const groups: Record<string, SavedAccount[]> = {}
+    for (const acc of accounts.value) {
+      const key = acc.nickname?.trim() || 'Không rõ'
+      if (!groups[key]) groups[key] = []
+      groups[key].push(acc)
+    }
+    // Trả về mảng để dễ render trên UI
+    return Object.entries(groups).map(([nickname, accounts]) => ({
+      nickname,
+      accounts,
+    }))
+  })
+
+  /**
+   * Lấy danh sách tài khoản đã lưu.
+   * Nếu truyền userId, sẽ lấy theo userId đó (dùng cho admin/manager).
+   * Nếu không truyền, mặc định lấy theo user hiện tại.
+   * Nếu user là 'manager', lấy tất cả tài khoản.
+   */
+  // Định nghĩa type riêng cho fetchAccounts để bao gồm userRole
+  type FetchAuthStore = { userId: string | undefined; userRole: string | undefined }
+  async function fetchAccounts(injectedAuthStore?: FetchAuthStore, overrideUserId?: string) {
     const authStore = injectedAuthStore || useAuthStore()
-    if (!authStore.userId) {
+    const targetUserId = overrideUserId || authStore.userId
+    const userRole = authStore.userRole // Lấy role
+
+    // Nếu chưa đăng nhập thì không fetch
+    if (!targetUserId) {
       console.warn('User not logged in, cannot fetch accounts.')
-      accounts.value = [] // Xóa danh sách nếu người dùng đăng xuất
+      accounts.value = [] // Clear state nếu chưa đăng nhập
       return
     }
 
     loading.value = true
     error.value = null
     try {
-      // Lấy tất cả các cột, bao gồm cả bank_bin và bank_code
-      const { data, error: fetchError } = await supabase
+      let query = supabase
         .from('user_accounts')
-        .select('*') // Lấy tất cả các cột
-        .eq('user_id', authStore.userId)
+        .select('*')
         .order('created_at', { ascending: false })
+
+      // Chỉ lọc theo user_id nếu không phải manager
+      if (userRole !== 'manager') {
+        console.log(`Fetching accounts for user: ${targetUserId}`)
+        query = query.eq('user_id', targetUserId)
+      } else {
+        console.log('Manager detected, fetching all accounts.')
+      }
+
+      const { data, error: fetchError } = await query // Thực thi query đã điều chỉnh
 
       if (fetchError) throw fetchError
 
-      // Đảm bảo dữ liệu trả về khớp với interface SavedAccount
       accounts.value = (data || []).map((item) => ({
         id: item.id,
         user_id: item.user_id,
         bank_bin: item.bank_bin,
-        bank_code: item.bank_code || '', // Gán giá trị mặc định nếu bank_code null/undefined
+        bank_code: item.bank_code || '',
         account_number: item.account_number,
         nickname: item.nickname,
         created_at: item.created_at,
-      })) as SavedAccount[] // Ép kiểu để đảm bảo type safety
+      })) as SavedAccount[]
     } catch (err: unknown) {
       console.error('Error fetching accounts:', err)
       error.value =
         err instanceof Error ? err.message : 'Lỗi không xác định khi tải danh sách tài khoản.'
-      accounts.value = [] // Clear accounts on error
+      accounts.value = []
     } finally {
       loading.value = false
     }
@@ -76,6 +109,8 @@ export const useAccountStore = defineStore('account', () => {
    * Thêm một tài khoản mới vào danh sách lưu.
    * @param newAccountInput Dữ liệu tài khoản mới từ form (chỉ chứa bank_bin, account_number, nickname)
    */
+  // Định nghĩa type cho các hàm chỉ cần userId
+  type MinimalAuthStore = { userId: string | undefined }
   // Định nghĩa kiểu BankInfo cho getBankByBin
   type BankInfo = {
     bankCode: string
@@ -242,8 +277,9 @@ export const useAccountStore = defineStore('account', () => {
   }
 
   // --- Return ---
-  return {
+  const returnedObject = {
     accounts,
+    groupedAccounts,
     loading,
     error,
     fetchAccounts,
@@ -251,4 +287,28 @@ export const useAccountStore = defineStore('account', () => {
     deleteAccount,
     deleteAccounts,
   }
+
+  // --- Watcher ---
+  // Tự động cập nhật danh sách tài khoản khi user thay đổi
+  // Đặt bên trong defineStore để đảm bảo Pinia đã active
+  const authStoreInstance = useAuthStore() // Lấy instance auth store
+  watch(
+    () => authStoreInstance.userId,
+    (newUserId, oldUserId) => {
+      console.log(`Auth User ID changed from ${oldUserId} to ${newUserId}`)
+      // Không cần gọi useAccountStore() nữa vì đang ở trong chính store đó
+      if (newUserId) {
+        // Nếu có user mới (đăng nhập hoặc thay đổi), fetch lại tài khoản
+        fetchAccounts() // Gọi trực tiếp action của store này
+      } else {
+        // Nếu không có user (đăng xuất), clear danh sách
+        accounts.value = [] // Truy cập trực tiếp state ref
+        error.value = null // Truy cập trực tiếp state ref
+        console.log('User logged out, cleared accounts.')
+      }
+    },
+    { immediate: false }, // Không chạy ngay khi store khởi tạo, chỉ chạy khi userId thay đổi
+  )
+
+  return returnedObject
 })
