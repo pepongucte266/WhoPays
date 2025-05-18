@@ -1,3 +1,22 @@
+## 2025-05-18: Khắc phục lỗi hiển thị toàn màn hình trên Mobile (SPA Fullscreen)
+
+- **Thay đổi CSS:**
+  - `src/assets/main.css`:
+    - Loại bỏ `padding` khỏi `#app`.
+    - Thêm `min-height: 100vh`, `display: flex`, `flex-direction: column` cho `#app` để đảm bảo nó chiếm toàn bộ chiều cao và cho phép nội dung con co giãn đúng cách.
+  - `src/assets/base.css`:
+    - Thêm `height: 100%` cho `html`.
+    - Thay đổi `min-height: 100vh` thành `height: 100%` cho `body` (trình định dạng có thể giữ lại cả hai).
+  - `src/App.vue`:
+    - Thêm padding `p-4 md:p-8` vào thẻ `main` để tạo khoảng đệm cho nội dung chính.
+- **Khắc phục sự cố Tailwind CSS:**
+  - `tailwind.config.js`: Cập nhật thuộc tính `content` để bao gồm tất cả các tệp nguồn cần thiết. (Đã thực hiện)
+  - Đổi tên `postcss.config.js` thành `postcss.config.cjs` để khắc phục lỗi build "ReferenceError: module is not defined in ES module scope". (Đã thực hiện)
+  - `postcss.config.cjs`: Cập nhật để sử dụng plugin `@tailwindcss/postcss` (thay vì `tailwindcss` trực tiếp) theo yêu cầu của phiên bản Tailwind CSS hiện tại, nhằm khắc phục lỗi build "[postcss] It looks like you're trying to use `tailwindcss` directly...".
+- **Mục tiêu:** Đảm bảo ứng dụng hiển thị toàn màn hình trên thiết bị di động, loại bỏ cuộn không mong muốn ở cấp độ layout gốc, duy trì khoảng đệm cho nội dung và sửa lỗi cấu hình Tailwind CSS & PostCSS để các lớp tiện ích hoạt động và quá trình build thành công.
+
+---
+
 ## 2025-04-20: Dọn dẹp code, popup chọn tài khoản, quick add
 
 - Đã loại bỏ hoàn toàn phần danh sách tài khoản đã lưu khỏi HomeView.vue.
