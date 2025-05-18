@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, reactive } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useAccountStore } from '@/stores/account'
 import type { SavedAccount } from '@/stores/account' // Import SavedAccount từ store
 
@@ -17,32 +17,21 @@ const emit = defineEmits<{
 }>()
 
 const accountStore = useAccountStore()
+const selectedAccounts = ref<SavedAccount[]>([])
 
-// Xóa định nghĩa SavedAccount cục bộ
-
-type AccountGroup = { idGroup: string; nickname: string; accounts: SavedAccount[] } // Sử dụng SavedAccount đã import
-const expandedRows = ref<Record<string, boolean>>({})
-// const selectedAccounts = ref<SavedAccount[]>([])
-
-// Selection for child tables: { [groupId]: SavedAccount[] }
-const selectedChildAccounts = reactive<Record<string, SavedAccount[]>>({}) // Sử dụng SavedAccount đã import
-
-const groupedAccountsWithId = computed<AccountGroup[]>(() =>
-  accountStore.groupedAccounts.map((g, idx) => ({
-    idGroup: `${g.nickname}-${idx}`,
-    nickname: g.nickname,
-    accounts: g.accounts,
-  }))
-)
-
-// Xóa hàm accountCountBody không sử dụng
+const flattenedAccounts = computed<Array<SavedAccount & { nickname: string }>>(() => {
+  return accountStore.groupedAccounts.flatMap(group =>
+    group.accounts.map(account => ({
+      ...account,
+      nickname: group.nickname // Add nickname to each account object
+    }))
+  )
+})
 
 function handleClose() {
   localVisible.value = false
   emit('update:visible', false)
-  // selectedAccounts.value = []
-  Object.keys(selectedChildAccounts).forEach(k => delete selectedChildAccounts[k])
-  expandedRows.value = {}
+  selectedAccounts.value = []
 }
 
 function handleQuickSelectAccount(acc: SavedAccount) {
@@ -52,19 +41,22 @@ function handleQuickSelectAccount(acc: SavedAccount) {
 
 function handleDeleteSingleAccount(acc: SavedAccount) {
   emit('delete', acc)
+  // Optionally, refetch or remove from local list if not handled by store reactivity
+  // For now, assume store handles updates and UI re-renders
 }
 
 function handleBulkGenerateQr() {
-  // Gom tất cả các tài khoản con đã chọn từ mọi group
-  const allSelected: SavedAccount[] = Object.values(selectedChildAccounts).flat()
-  emit('bulk-generate', allSelected)
-  handleClose()
+  if (selectedAccounts.value.length > 0) {
+    emit('bulk-generate', [...selectedAccounts.value])
+    handleClose()
+  }
 }
 
 function handleBulkDelete() {
-  const allSelected: SavedAccount[] = Object.values(selectedChildAccounts).flat()
-  emit('bulk-delete', allSelected)
-  Object.keys(selectedChildAccounts).forEach(k => delete selectedChildAccounts[k])
+  if (selectedAccounts.value.length > 0) {
+    emit('bulk-delete', [...selectedAccounts.value])
+    selectedAccounts.value = [] // Clear selection after emitting
+  }
 }
 
 const actionItems = computed(() => [
@@ -79,32 +71,20 @@ const actionItems = computed(() => [
     command: handleBulkGenerateQr,
   }
 ])
-const isActionDisabled = computed(() => Object.values(selectedChildAccounts).flat().length === 0)
+const isActionDisabled = computed(() => selectedAccounts.value.length === 0)
 
 watch(() => props.visible, (val) => {
   localVisible.value = val
 })
+
 watch(localVisible, async (val) => {
   emit('update:visible', val)
   if (val) {
     await accountStore.fetchAccounts()
-    // selectedAccounts.value = []
-    Object.keys(selectedChildAccounts).forEach(k => delete selectedChildAccounts[k])
-    expandedRows.value = {}
+    selectedAccounts.value = []
   }
 })
 
-// Toggle expand/collapse when clicking on row (chỉ xử lý khi click vào row, không xử lý icon expander)
-function onRowClick(event: { data: AccountGroup; originalEvent: MouseEvent }) {
-  // Chỉ toggle expandedRows nếu click vào TD (cell), còn click icon expander thì PrimeVue tự xử lý
-  if ((event.originalEvent.target as HTMLElement).tagName !== 'TD') return;
-  const id = event.data.idGroup
-  if (expandedRows.value[id]) {
-    delete expandedRows.value[id]
-  } else {
-    expandedRows.value[id] = true
-  }
-}
 </script>
 
 <template>
@@ -118,34 +98,26 @@ function onRowClick(event: { data: AccountGroup; originalEvent: MouseEvent }) {
         <PrimeSplitButton label="Hành động" icon="pi pi-cog" :model="actionItems" :disabled="isActionDisabled"
           severity="secondary" class="p-button-sm" :menuButtonProps="{ 'aria-label': 'More Actions' }" />
       </div>
-      <PrimeDataTable :value="groupedAccountsWithId" dataKey="idGroup" v-model:expandedRows="expandedRows"
-        class="p-datatable-sm bg-gray-800 text-gray-200 h-full" :rows="8" scrollable scrollHeight="100%"
-        @row-click="onRowClick">
-        <PrimeColumn expander style="width: 5rem" />
-        <PrimeColumn field="nickname" />
-        <template #expansion="slotProps">
-          <PrimeDataTable :value="slotProps.data.accounts" dataKey="id" class="p-datatable-sm bg-gray-900 text-gray-200"
-            showHeader="false" selectionMode="multiple" :selection="selectedChildAccounts[slotProps.data.idGroup] || []"
-            @update:selection="(val: SavedAccount[]) => selectedChildAccounts[slotProps.data.idGroup] = val">
-            <PrimeColumn selectionMode="multiple" style="width: 40px; min-width: 40px; max-width: 40px;" />
-            <PrimeColumn field="account_number" style="width: 40%; min-width: 120px;" />
-            <PrimeColumn field="bank_code" style="width: 25%; min-width: 80px;" />
-            <PrimeColumn headerStyle="width: 60px; text-align: center;" style="width: 15%;">
-              <template #body="slotProps2">
-                <PrimeButton icon="pi pi-check" class="!p-2 !rounded-full" severity="success" :text="true"
-                  @click="() => handleQuickSelectAccount(slotProps2.data as SavedAccount)" />
-              </template>
-            </PrimeColumn>
-            <PrimeColumn headerStyle="width: 60px; text-align: center;" style="width: 15%;">
-              <template #body="slotProps2">
-                <PrimeButton icon="pi pi-trash" class="!p-2 !rounded-full" severity="danger" :text="true"
-                  @click="() => handleDeleteSingleAccount(slotProps2.data as SavedAccount)" />
-              </template>
-            </PrimeColumn>
-          </PrimeDataTable>
-        </template>
+      <PrimeDataTable :value="flattenedAccounts" dataKey="id" v-model:selection="selectedAccounts"
+        class="p-datatable-sm bg-gray-800 text-gray-200 h-full" :rows="10" scrollable scrollHeight="flex"
+        selectionMode="multiple" responsiveLayout="scroll" sortField="nickname" :sortOrder="1">
+        <PrimeColumn selectionMode="multiple" headerStyle="width: 3rem" :frozen="true" />
+        <PrimeColumn field="nickname" header="Chủ tài khoản" sortable style="min-width: 150px" :frozen="true" />
+        <PrimeColumn field="account_number" header="Số tài khoản" sortable style="min-width: 150px" />
+        <PrimeColumn field="bank_code" header="Ngân hàng (Mã)" sortable style="min-width: 100px" />
+        <PrimeColumn header="Hành động" style="min-width: 120px;" bodyClass="text-center" headerClass="text-center">
+          <!-- Removed text-align: center from style as bodyClass should handle it or the div below will -->
+          <template #body="slotProps">
+            <div class="flex justify-center items-center w-full">
+              <PrimeButton icon="pi pi-check" class="!p-2 !rounded-full mr-2" severity="success" :text="true"
+                @click="() => handleQuickSelectAccount(slotProps.data as SavedAccount)" v-tooltip.top="'Chọn nhanh'" />
+              <PrimeButton icon="pi pi-trash" class="!p-2 !rounded-full" severity="danger" :text="true"
+                @click="() => handleDeleteSingleAccount(slotProps.data as SavedAccount)" v-tooltip.top="'Xóa'" />
+            </div>
+          </template>
+        </PrimeColumn>
       </PrimeDataTable>
-      <div v-if="!groupedAccountsWithId.length" class="text-center text-gray-400 py-4">
+      <div v-if="!flattenedAccounts.length" class="text-center text-gray-400 py-4">
         Không có tài khoản nào được lưu. Hãy thêm tài khoản mới.
       </div>
     </div>

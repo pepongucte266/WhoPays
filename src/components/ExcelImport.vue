@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, h } from 'vue'
+import { ref, computed, h, watch } from 'vue'
 import { useQrStore } from '@/stores/qr'
 import { useBanksStore } from '@/stores/banks'
 import { useAccountStore } from '@/stores/account'
@@ -30,11 +30,16 @@ const records = computed<ExcelRecord[]>(() => qrStore.excelRecords as ExcelRecor
 
 // Xử lý selection cho PrimeDataTable
 const selectedRecords = ref<ExcelRecord[]>([])
-function onSelectionChange(e: { value: ExcelRecord[] }) {
-  const selected = e.value.map(item => item.id)
-  records.value.forEach(r => { r.selected = selected.includes(r.id) })
-  selectedRecords.value = e.value
-}
+
+// Sử dụng watch để cập nhật thuộc tính 'selected' trên từng record khi selectedRecords thay đổi
+// Điều này hữu ích nếu bạn cần thuộc tính 'selected' cho các logic khác ngoài PrimeDataTable
+watch(selectedRecords, (newSelection) => {
+  const selectedIds = newSelection.map(item => item.id);
+  records.value.forEach(r => {
+    r.selected = selectedIds.includes(r.id);
+  });
+  // console.log('Selected records (watched):', newSelection);
+}, { deep: true });
 
 // Các hàm render cell cho PrimeColumn
 function renderBankName(row: ExcelRecord) {
@@ -190,9 +195,8 @@ async function saveAccountFromExcel(record: ExcelRecord) {
           Tạo QR Đã Chọn
         </PrimeButton>
       </div>
-      <PrimeDataTable :value="records" dataKey="id" :selection="selectedRecords" @selection-change="onSelectionChange"
-        scrollable scrollHeight="400px" stripedRows responsiveLayout="scroll"
-        class="p-datatable-sm bg-gray-800 text-gray-200">
+      <PrimeDataTable :value="records" dataKey="id" v-model:selection="selectedRecords" scrollable scrollHeight="400px"
+        stripedRows responsiveLayout="scroll" class="p-datatable-sm bg-gray-800 text-gray-200">
         <PrimeColumn selectionMode="multiple" headerStyle="width: 3rem" :exportable="false" />
         <PrimeColumn field="bankBin" header="Ngân hàng" :sortable="true" :body="renderBankName" />
         <PrimeColumn field="accountNumber" header="Số tài khoản" :sortable="true" />
@@ -225,19 +229,5 @@ async function saveAccountFromExcel(record: ExcelRecord) {
       Chọn file Excel để bắt đầu import dữ liệu. File cần có cột chứa Mã BIN/Tên ngân hàng, Số tài khoản và Tên gợi
       nhớ/Chủ TK.
     </div>
-
-    <!-- Display generated QR codes from Excel (đã bỏ, dùng popup chung) -->
-    <!--
-    <div v-if="records.some(r => r.qrDataUrl)" class="mt-8">
-      <h3 class="text-lg font-semibold mb-4 text-green-400">Mã QR Đã Tạo (từ Excel)</h3>
-      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        <template v-for="record in records" :key="'qr-'+record.id">
-          <QrDisplay v-if="record.qrDataUrl" :qr-data-url="record.qrDataUrl" :account-number="record.accountNumber"
-            :nickname="record.nickname" :amount="record.amount" :purpose="record.purpose" :record-id="record.id"
-            :download-handler="() => qrStore.downloadExcelQr(record.id)" />
-        </template>
-      </div>
-    </div>
-    -->
   </div>
 </template>
