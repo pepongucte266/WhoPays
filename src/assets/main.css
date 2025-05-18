@@ -6,13 +6,16 @@
 
 #app {
   margin: 0 auto;
-  padding: 1rem;
+  /* padding: 1rem; */
   font-weight: normal;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 @media (min-width: 640px) {
   #app {
-    padding: 2rem;
+    /* padding: 2rem; */
   }
 }
 

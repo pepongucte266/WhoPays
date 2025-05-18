@@ -1,4 +1,23 @@
-# Active Context (2025-04-20)
+# Active Context (2025-05-18)
+
+## Khắc phục lỗi hiển thị toàn màn hình trên Mobile (SPA Fullscreen)
+
+- **Vấn đề:** Ứng dụng SPA không hiển thị toàn màn hình trên thiết bị di động, xuất hiện thanh cuộn không mong muốn.
+- **Nguyên nhân:**
+  - `padding` được áp dụng cho thẻ `#app` trong `src/assets/main.css`, tạo khoảng trống xung quanh nội dung chính.
+- **Giải pháp:**
+  - Loại bỏ `padding` khỏi `#app` trong `src/assets/main.css`.
+  - Đảm bảo `#app` trong `src/assets/main.css` có `min-height: 100vh`, `display: flex`, `flex-direction: column` để chiếm toàn bộ chiều cao và cho phép `#app-container` (trong `App.vue`) co giãn đúng cách.
+  - Đảm bảo `html` và `body` trong `src/assets/base.css` có `height: 100%` (hoặc `min-height: 100%`) để tạo nền tảng cho layout toàn màn hình.
+  - Áp dụng padding `p-4 md:p-8` (tương đương `1rem` và `2rem`) vào thẻ `main` bên trong `src/App.vue` để tạo khoảng đệm cho nội dung chính, thay vì áp dụng padding cho `#app` gốc.
+- **Khắc phục sự cố Tailwind CSS không áp dụng class tiện ích:**
+  - **Vấn đề:** Các class tiện ích của Tailwind (ví dụ: `p-4`, `md:p-8`) không có hiệu lực.
+  - **Nguyên nhân & Giải pháp:**
+    - Cập nhật `tailwind.config.js`: Đảm bảo thuộc tính `content` bao gồm các đường dẫn đến tệp nguồn (`./index.html`, `./src/**/*.{vue,js,ts,jsx,tsx}`).
+    - Cập nhật `postcss.config.js`: Sửa tên plugin từ `@tailwindcss/postcss` thành `tailwindcss` để phù hợp với cách sử dụng tiêu chuẩn.
+- **Kết quả:** Ứng dụng giờ đây hiển thị toàn màn hình trên thiết bị di động, đồng thời duy trì khoảng đệm hợp lý cho nội dung chính thông qua padding trong `main`. Cấu hình Tailwind CSS đã được sửa để các lớp tiện ích hoạt động chính xác.
+
+---
 
 ## Unit test & kiểm thử
 
