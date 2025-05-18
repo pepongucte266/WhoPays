@@ -217,7 +217,7 @@ function handleBulkGenerateQr(accounts: SavedAccount[]) {
           <PrimeSelect v-model="selectedBankBin" :options="bankList" optionLabel="label" optionValue="value"
             :placeholder="isLoadingBanks ? 'Đang tải ngân hàng...' : (bankError ? 'Lỗi tải ngân hàng' : 'Chọn ngân hàng')"
             class="w-full" :showClear="true" inputId="bank-bin" :loading="isLoadingBanks"
-            :disabled="isLoadingBanks || !!bankError" />
+            :disabled="isLoadingBanks || !!bankError" :filter="true" />
           <small v-if="bankError" class="text-red-400 text-xs mt-1">{{ bankError }}</small>
         </div>
 
