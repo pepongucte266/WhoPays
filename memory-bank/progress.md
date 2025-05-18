@@ -10,9 +10,10 @@
   - `src/App.vue`:
     - Thêm padding `p-4 md:p-8` vào thẻ `main` để tạo khoảng đệm cho nội dung chính.
 - **Khắc phục sự cố Tailwind CSS:**
-  - `tailwind.config.js`: Cập nhật thuộc tính `content` để bao gồm tất cả các tệp nguồn cần thiết.
-  - `postcss.config.js`: Sửa tên plugin thành `tailwindcss`.
-- **Mục tiêu:** Đảm bảo ứng dụng hiển thị toàn màn hình trên thiết bị di động, loại bỏ cuộn không mong muốn ở cấp độ layout gốc, duy trì khoảng đệm cho nội dung và sửa lỗi cấu hình Tailwind CSS để các lớp tiện ích hoạt động.
+  - `tailwind.config.js`: Cập nhật thuộc tính `content` để bao gồm tất cả các tệp nguồn cần thiết. (Đã thực hiện)
+  - Đổi tên `postcss.config.js` thành `postcss.config.cjs` để khắc phục lỗi build "ReferenceError: module is not defined in ES module scope". (Đã thực hiện)
+  - `postcss.config.cjs`: Cập nhật để sử dụng plugin `@tailwindcss/postcss` (thay vì `tailwindcss` trực tiếp) theo yêu cầu của phiên bản Tailwind CSS hiện tại, nhằm khắc phục lỗi build "[postcss] It looks like you're trying to use `tailwindcss` directly...".
+- **Mục tiêu:** Đảm bảo ứng dụng hiển thị toàn màn hình trên thiết bị di động, loại bỏ cuộn không mong muốn ở cấp độ layout gốc, duy trì khoảng đệm cho nội dung và sửa lỗi cấu hình Tailwind CSS & PostCSS để các lớp tiện ích hoạt động và quá trình build thành công.
 
 ---
 

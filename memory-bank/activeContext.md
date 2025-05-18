@@ -11,11 +11,15 @@
   - Đảm bảo `html` và `body` trong `src/assets/base.css` có `height: 100%` (hoặc `min-height: 100%`) để tạo nền tảng cho layout toàn màn hình.
   - Áp dụng padding `p-4 md:p-8` (tương đương `1rem` và `2rem`) vào thẻ `main` bên trong `src/App.vue` để tạo khoảng đệm cho nội dung chính, thay vì áp dụng padding cho `#app` gốc.
 - **Khắc phục sự cố Tailwind CSS không áp dụng class tiện ích:**
-  - **Vấn đề:** Các class tiện ích của Tailwind (ví dụ: `p-4`, `md:p-8`) không có hiệu lực.
+  - **Vấn đề:**
+    1. Các class tiện ích của Tailwind (ví dụ: `p-4`, `md:p-8`) không có hiệu lực.
+    2. Lỗi build "ReferenceError: module is not defined in ES module scope" khi xử lý `postcss.config.js`.
+    3. Lỗi build "[postcss] It looks like you're trying to use `tailwindcss` directly as a PostCSS plugin..." sau khi sửa lỗi (2).
   - **Nguyên nhân & Giải pháp:**
-    - Cập nhật `tailwind.config.js`: Đảm bảo thuộc tính `content` bao gồm các đường dẫn đến tệp nguồn (`./index.html`, `./src/**/*.{vue,js,ts,jsx,tsx}`).
-    - Cập nhật `postcss.config.js`: Sửa tên plugin từ `@tailwindcss/postcss` thành `tailwindcss` để phù hợp với cách sử dụng tiêu chuẩn.
-- **Kết quả:** Ứng dụng giờ đây hiển thị toàn màn hình trên thiết bị di động, đồng thời duy trì khoảng đệm hợp lý cho nội dung chính thông qua padding trong `main`. Cấu hình Tailwind CSS đã được sửa để các lớp tiện ích hoạt động chính xác.
+    - Cập nhật `tailwind.config.js`: Đảm bảo thuộc tính `content` bao gồm các đường dẫn đến tệp nguồn (`./index.html`, `./src/**/*.{vue,js,ts,jsx,tsx}`). (Đã thực hiện)
+    - Đổi tên `postcss.config.js` thành `postcss.config.cjs`: Để xử lý lỗi "module is not defined" do dự án sử dụng ES Modules (`"type": "module"` trong `package.json`) trong khi tệp cấu hình PostCSS sử dụng cú pháp CommonJS. (Đã thực hiện)
+    - Cập nhật `postcss.config.cjs`: Sử dụng đúng tên plugin `@tailwindcss/postcss` theo yêu cầu của phiên bản Tailwind CSS hiện tại, thay vì `tailwindcss` trực tiếp. Gói `@tailwindcss/postcss` đã có sẵn trong `devDependencies`.
+- **Kết quả:** Ứng dụng giờ đây hiển thị toàn màn hình trên thiết bị di động, đồng thời duy trì khoảng đệm hợp lý cho nội dung chính thông qua padding trong `main`. Cấu hình Tailwind CSS và PostCSS đã được điều chỉnh để phù hợp với yêu cầu của phiên bản và kiểu module của dự án, nhằm mục tiêu khắc phục các lỗi build và đảm bảo các lớp tiện ích hoạt động.
 
 ---
 
