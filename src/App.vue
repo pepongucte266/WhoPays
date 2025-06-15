@@ -34,7 +34,7 @@ async function handleLogout() {
 
 <template>
   <div id="app-container"
-    class="min-h-screen bg-gray-900 text-gray-200 font-sans flex items-center justify-center flex-col">
+    class="min-h-screen bg-gray-900 text-gray-200 font-sans flex items-center justify-center flex-col w-full">
     <header class="bg-gray-800 shadow-md p-2 md:p-4 flex flex-col sm:flex-row justify-between items-center gap-2">
       <h1 class="text-lg md:text-xl font-semibold text-green-400 text-center sm:text-left">VietQR Generator</h1>
       <div v-if="isLoggedIn" class="flex items-center space-x-2 md:space-x-4">
@@ -46,7 +46,7 @@ async function handleLogout() {
       </div>
     </header>
 
-    <main class="flex-1 flex justify-center" style="padding: 0 16px;">
+    <main class="flex-1 flex flex-col w-full min-w-0" style="padding: 0 16px;">
       <RouterView />
       <PrimeConfirmDialog />
       <PrimeToast />

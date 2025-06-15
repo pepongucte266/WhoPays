@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, h, watch } from 'vue'
+import { ref, computed, watch } from 'vue' // Xóa 'h' không còn dùng
+// PrimeSkeleton đã được đăng ký global trong main.ts
 import { useQrStore } from '@/stores/qr'
 import { useBanksStore } from '@/stores/banks'
 import { useAccountStore } from '@/stores/account'
@@ -54,24 +55,60 @@ function renderAmount(row: ExcelRecord) {
 function renderPurpose(row: ExcelRecord) {
   return row.purpose || '-'
 }
-function renderQrCode(row: ExcelRecord) {
-  if (row.qrDataUrl) {
-    return h('button', {
-      class: 'text-blue-400 hover:text-blue-300',
-      title: 'Tải xuống QR',
-      onClick: () => qrStore.downloadExcelQr(row.id)
-    }, [h('i', { class: 'pi pi-download mx-auto' })])
+
+// function renderQrCode(row: ExcelRecord) { // Logic sẽ được chuyển vào handleShowQr hoặc nút bấm trực tiếp
+//   if (row.qrDataUrl) {
+//     return h('button', {
+//       class: 'text-blue-400 hover:text-blue-300',
+//       title: 'Tải xuống QR',
+//       onClick: () => qrStore.downloadExcelQr(row.id)
+//     }, [h('i', { class: 'pi pi-download mx-auto' })])
+//   }
+//   if (row.error) {
+//     return h('span', { class: 'text-red-500 text-xs italic' }, 'Lỗi')
+//   }
+//   return h('span', { class: 'text-gray-500 text-xs italic' }, 'Chưa tạo')
+// }
+
+// function renderError(row: ExcelRecord) { // Đã xóa cột Lỗi nên hàm này không còn dùng
+//   return row.error || '-'
+// }
+
+async function handleShowQr(record: ExcelRecord) {
+  const storeRecord = qrStore.excelRecords.find(r => r.id === record.id);
+  if (!storeRecord) {
+    console.error('Record not found in store for QR display');
+    return;
   }
-  if (row.error) {
-    return h('span', { class: 'text-red-500 text-xs italic' }, 'Lỗi')
+
+  if (storeRecord.qrDataUrl) {
+    // Tìm record trong qrList để mở dialog. qrList được computed từ excelRecords có qrDataUrl.
+    const qrListIndex = qrStore.qrList.findIndex(
+      (qr) => qr.qrDataUrl === storeRecord.qrDataUrl && qr.accountNumber === storeRecord.accountNumber
+    );
+    if (qrListIndex !== -1) {
+      qrStore.openQrDialog(qrListIndex);
+    } else {
+      console.warn('QR data URL exists but not found in current QR list. List might be stale or record not processed into list.');
+      alert('Không thể hiển thị QR. Dữ liệu QR có thể chưa sẵn sàng trong danh sách hiển thị.');
+    }
+  } else if (storeRecord.error) {
+    alert(`Lỗi tạo QR cho bản ghi này: ${storeRecord.error}`);
+  } else {
+    alert('QR chưa được tạo cho bản ghi này. Vui lòng chọn và tạo QR hàng loạt.');
   }
-  return h('span', { class: 'text-gray-500 text-xs italic' }, 'Chưa tạo')
 }
-function renderError(row: ExcelRecord) {
-  return row.error || '-'
-}
+
 const isLoading = computed(() => qrStore.isProcessingExcel)
 const error = computed(() => qrStore.excelError)
+
+// Dữ liệu giả cho skeleton
+const skeletonRecords = ref(Array(5).fill({ id: -1 })); // id: -1 để phân biệt với id thật nếu cần
+
+const tableData = computed(() => {
+  return isLoading.value && records.value.length === 0 ? skeletonRecords.value : records.value;
+});
+
 
 function triggerFileInput() {
   fileInput.value?.click()
@@ -148,10 +185,17 @@ async function saveAccountFromExcel(record: ExcelRecord) {
     setTimeout(() => { record._saveStatus = undefined; record._saveError = undefined }, 4000)
   }
 }
+
+/**
+ * Xóa một bản ghi khỏi danh sách Excel trên giao diện.
+ */
+function deleteRecordFromExcel(record: ExcelRecord) {
+  qrStore.removeExcelRecord(record.id)
+}
 </script>
 
 <template>
-  <div class="excel-import bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700">
+  <div class="excel-import bg-gray-800 p-6 rounded-lg shadow-md">
     <div class="flex justify-between items-center mb-4 gap-4">
       <h2 class="text-lg font-semibold text-green-400">Import từ Excel</h2>
       <div class="flex gap-2">
@@ -169,65 +213,158 @@ async function saveAccountFromExcel(record: ExcelRecord) {
       </div>
     </div>
 
-    <!-- Loading Indicator -->
-    <div v-if="isLoading" class="text-center text-gray-400 py-4">
-      <svg class="animate-spin mx-auto h-8 w-8 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none"
-        viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor"
-          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-        </path>
-      </svg>
-      <p class="mt-2">Đang xử lý file...</p>
-    </div>
-
     <!-- Error Message -->
     <div v-if="error && !isLoading" class="mb-4 p-3 bg-red-900 border border-red-700 text-red-200 text-sm rounded-md">
       {{ error }}
     </div>
 
     <!-- Data Table -->
-    <div v-if="records.length > 0 && !isLoading" class="mt-4">
-      <div class="flex justify-end mb-2">
-        <PrimeButton @click="generateSelectedQrCodes" :disabled="!canGenerateMultiple"
-          title="Tạo mã QR cho các mục đã chọn" class="p-button-success p-button-sm">
-          <i class="pi pi-qrcode mr-1"></i>
-          Tạo QR Đã Chọn
-        </PrimeButton>
-      </div>
-      <PrimeDataTable :value="records" dataKey="id" v-model:selection="selectedRecords" scrollable scrollHeight="400px"
-        stripedRows responsiveLayout="scroll" class="p-datatable-sm bg-gray-800 text-gray-200">
-        <PrimeColumn selectionMode="multiple" headerStyle="width: 3rem" :exportable="false" />
-        <PrimeColumn field="bankBin" header="Ngân hàng" :sortable="true" :body="renderBankName" />
-        <PrimeColumn field="accountNumber" header="Số tài khoản" :sortable="true" />
-        <PrimeColumn field="nickname" header="Tên gợi nhớ/Chủ TK" :sortable="true" :body="renderNickname" />
-        <PrimeColumn field="amount" header="Số tiền" :sortable="true" :body="renderAmount" style="text-align: right;" />
-        <PrimeColumn field="purpose" header="Nội dung" :body="renderPurpose"
-          style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;" />
-        <PrimeColumn header="QR Code" :body="renderQrCode" style="text-align: center;" />
-        <PrimeColumn field="error" header="Lỗi" :body="renderError" style="max-width: 200px; color: #f87171;" />
-        <PrimeColumn header="Thao tác" style="text-align: center;">
-          <template #body="slotProps">
-            <button v-if="slotProps.data._saveStatus === undefined"
-              class="px-2 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-semibold transition disabled:opacity-50"
-              :disabled="accountStore.loading" title="Lưu tài khoản vào Supabase"
-              @click="() => saveAccountFromExcel(slotProps.data)">
-              <i class="pi pi-save mr-1"></i>Lưu
-            </button>
-            <span v-else-if="slotProps.data._saveStatus === 'success'" class="text-green-400 text-xs font-semibold">
-              Đã lưu
-            </span>
-            <span v-else-if="slotProps.data._saveStatus === 'error'" class="text-red-400 text-xs font-semibold"
-              :title="slotProps.data._saveError">
-              Lỗi
-            </span>
-          </template>
-        </PrimeColumn>
-      </PrimeDataTable>
+    <div class="flex justify-end mb-2 mt-4">
+      <PrimeButton @click="generateSelectedQrCodes" :disabled="!canGenerateMultiple || isLoading"
+        title="Tạo mã QR cho các mục đã chọn" class="p-button-success p-button-sm">
+        <i class="pi pi-qrcode mr-1"></i>
+        Tạo QR Đã Chọn
+      </PrimeButton>
     </div>
-    <div v-else-if="!isLoading && records.length === 0" class="text-center text-gray-400 py-6">
-      Chọn file Excel để bắt đầu import dữ liệu. File cần có cột chứa Mã BIN/Tên ngân hàng, Số tài khoản và Tên gợi
-      nhớ/Chủ TK.
-    </div>
+    <PrimeDataTable :value="tableData" dataKey="id" v-model:selection="selectedRecords"
+      :loading="isLoading && records.length === 0" scrollable scrollHeight="470px" responsiveLayout="scroll"
+      class="bg-gray-800 text-gray-200 excel-import-table">
+      <PrimeColumn selectionMode="multiple" headerStyle="width: 3rem" :exportable="false">
+        <template #body v-if="isLoading && records.length === 0">
+          <PrimeSkeleton shape="circle" size="1.5rem"></PrimeSkeleton>
+        </template>
+        <!-- Khi không loading skeleton, không cung cấp template #body, PrimeVue sẽ tự render checkbox -->
+      </PrimeColumn>
+      <PrimeColumn field="bankBin" header="Bank" :sortable="!isLoading">
+        <template #body="slotProps">
+          <PrimeSkeleton v-if="isLoading && records.length === 0" height="1.5rem"></PrimeSkeleton>
+          <span v-else>{{ renderBankName(slotProps.data) }}</span>
+        </template>
+      </PrimeColumn>
+      <PrimeColumn field="accountNumber" header="STK" :sortable="!isLoading">
+        <template #body="slotProps">
+          <PrimeSkeleton v-if="isLoading && records.length === 0" height="1.5rem"></PrimeSkeleton>
+          <span v-else>{{ slotProps.data.accountNumber }}</span>
+        </template>
+      </PrimeColumn>
+      <PrimeColumn field="nickname" header="Tên TK" :sortable="!isLoading">
+        <template #body="slotProps">
+          <PrimeSkeleton v-if="isLoading && records.length === 0" height="1.5rem"></PrimeSkeleton>
+          <span v-else>{{ renderNickname(slotProps.data) }}</span>
+        </template>
+      </PrimeColumn>
+      <PrimeColumn field="amount" header="Số tiền" :sortable="!isLoading" style="text-align: right;">
+        <template #body="slotProps">
+          <PrimeSkeleton v-if="isLoading && records.length === 0" height="1.5rem"></PrimeSkeleton>
+          <span v-else>{{ renderAmount(slotProps.data) }}</span>
+        </template>
+      </PrimeColumn>
+      <PrimeColumn field="purpose" header="Nội dung"
+        style="max-width: 180px; overflow: hidden; text-overflow: ellipsis; position: relative;"
+        bodyClass="purpose-cell-actions-container">
+        <template #body="slotProps">
+          <PrimeSkeleton v-if="isLoading && records.length === 0" height="1.5rem"></PrimeSkeleton>
+          <span v-else>{{ renderPurpose(slotProps.data) }}</span>
+          <!-- Actions sẽ được chèn vào đây khi không loading và không phải skeleton record -->
+          <div v-if="!(isLoading && records.length === 0) && slotProps.data.id !== -1" class="dynamic-row-actions">
+            <ButtonGroup class="flex w-full p-0 gap-0">
+              <PrimeButton class="flex-1" severity="info" icon="pi pi-qrcode" v-tooltip.top="'Xem QR'"
+                :disabled="!slotProps.data.qrDataUrl && !slotProps.data.error" @click="handleShowQr(slotProps.data)" />
+              <PrimeButton class="flex-1" icon="pi pi-save" v-tooltip.top="'Lưu tài khoản'"
+                v-if="slotProps.data._saveStatus === undefined" :disabled="accountStore.loading"
+                @click="() => saveAccountFromExcel(slotProps.data)" />
+              <PrimeButton class="flex-1 p-button-danger" icon="pi pi-trash" v-tooltip.top="'Xóa bản ghi'"
+                v-if="slotProps.data._saveStatus === undefined" @click="() => deleteRecordFromExcel(slotProps.data)" />
+            </ButtonGroup>
+
+
+            <span v-if="slotProps.data._saveStatus === 'success'"
+              class="text-green-400 text-xs font-semibold p-1 action-status-text">Đã lưu</span>
+            <span v-if="slotProps.data._saveStatus === 'error'"
+              class="text-red-400 text-xs font-semibold p-1 action-status-text"
+              :title="slotProps.data._saveError">Lỗi</span>
+          </div>
+        </template>
+      </PrimeColumn>
+      <template #empty>
+        <div class="text-center text-gray-400 py-6">
+          Chọn file Excel để bắt đầu import dữ liệu. File cần có cột chứa Mã BIN/Tên ngân hàng, Số tài khoản và Tên gợi
+          nhớ/Chủ TK.
+        </div>
+      </template>
+    </PrimeDataTable>
   </div>
 </template>
+
+<style scoped>
+.excel-import-table :deep(.p-datatable-tbody > tr) {
+  position: relative;
+  /* Cho phép định vị tuyệt đối .dynamic-row-actions */
+}
+
+/* Quan trọng: đảm bảo cell chứa actions không cắt mất nội dung khi hover */
+.excel-import-table :deep(.purpose-cell-actions-container.p-cell-editing),
+.excel-import-table :deep(.purpose-cell-actions-container) {
+  overflow: visible !important;
+}
+
+
+.dynamic-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  /* Phân bố các nút đều nhau */
+  gap: 0.2rem;
+
+  position: absolute;
+  right: 0.3rem;
+  top: 50%;
+  opacity: 0;
+  transform: translateY(-50%) translateX(15px);
+  pointer-events: none;
+  transition: opacity 0.15s ease-out, transform 0.15s ease-out, width 0.15s ease-out;
+  /* Thêm width vào transition */
+
+  background-color: var(--surface-overlay);
+  /* Thử với --surface-overlay */
+  /* Màu nền đậm hơn */
+  padding: 0.3rem 0.5rem;
+  /* Padding dọc và ngang */
+  border-radius: var(--border-radius);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+
+  min-width: 20rem;
+  /* Chiều rộng tối thiểu để dài ra */
+}
+
+.excel-import-table :deep(.p-datatable-tbody > tr:hover) .dynamic-row-actions {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+  /* Trượt vào vị trí */
+  pointer-events: auto;
+}
+
+/* Đảm bảo các nút có kích thước phù hợp và nhất quán */
+.dynamic-row-actions .p-button.p-button-sm {
+  width: 1.75rem;
+  /* Kích thước nhỏ hơn cho nút icon */
+  height: 1.75rem;
+}
+
+.dynamic-row-actions .p-button.p-button-sm .p-button-icon {
+  font-size: 0.875rem;
+  /* Kích thước icon nhỏ hơn */
+}
+
+/* Style cho text trạng thái (Đã lưu, Lỗi) để nó không quá lớn */
+.action-status-text {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  /* Padding nhỏ */
+  font-size: 0.75rem;
+  /* Cỡ chữ nhỏ */
+  white-space: nowrap;
+  /* Ngăn không cho xuống dòng */
+}
+</style>

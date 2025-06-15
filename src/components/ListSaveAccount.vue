@@ -110,9 +110,9 @@ watch(localVisible, async (val) => {
           <template #body="slotProps">
             <div class="flex justify-center items-center w-full">
               <PrimeButton icon="pi pi-check" class="!p-2 !rounded-full mr-2" severity="success" :text="true"
-                @click="() => handleQuickSelectAccount(slotProps.data as SavedAccount)" v-tooltip.top="'Chọn nhanh'" />
+                @click="() => handleQuickSelectAccount(slotProps.data as SavedAccount)" />
               <PrimeButton icon="pi pi-trash" class="!p-2 !rounded-full" severity="danger" :text="true"
-                @click="() => handleDeleteSingleAccount(slotProps.data as SavedAccount)" v-tooltip.top="'Xóa'" />
+                @click="() => handleDeleteSingleAccount(slotProps.data as SavedAccount)" />
             </div>
           </template>
         </PrimeColumn>
