@@ -1,3 +1,12 @@
+# Active Context (2025-06-29)
+
+## Xóa hoàn toàn SavedAccounts.vue & dọn sạch reference
+
+- Đã xác nhận không còn file SavedAccounts.vue trong src/components/.
+- Đã kiểm tra toàn bộ mã nguồn, không còn bất kỳ reference (import, sử dụng) nào đến SavedAccounts.vue.
+- Đã dọn sạch hoàn toàn code liên quan, đảm bảo không còn code thừa hoặc nhầm lẫn về popup chọn tài khoản.
+- Memory Bank đã cập nhật để phản ánh trạng thái này.
+
 # Active Context (2025-05-18)
 
 ## Khắc phục lỗi hiển thị toàn màn hình trên Mobile (SPA Fullscreen)

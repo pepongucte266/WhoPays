@@ -422,6 +422,14 @@ export const useQrStore = defineStore('qr', () => {
     generateMultipleQrCodes,
     downloadExcelQr,
 
+    // Action to remove a record from excelRecords
+    removeExcelRecord(recordId: number) {
+      const index = excelRecords.value.findIndex((r) => r.id === recordId)
+      if (index !== -1) {
+        excelRecords.value.splice(index, 1)
+      }
+    },
+
     // QR navigation
     currentQrIndex,
     showQrDialog,

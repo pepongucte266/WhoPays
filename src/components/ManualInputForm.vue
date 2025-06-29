@@ -63,6 +63,8 @@ function handleClearForm() {
 
 /** State cho popup chọn tài khoản đã lưu */
 const showAccountDialog = ref(false)
+/** State cho form showAmnualCreate */
+const showAmnualCreate = ref(false)
 
 // Kiểu cho tài khoản đã lưu
 interface SavedAccount {
@@ -199,7 +201,7 @@ function handleBulkGenerateQr(accounts: SavedAccount[]) {
   }, 100)
 }
 
-// ĐÃ XÓA onMounted(() => banksStore.fetchBanks())
+
 </script>
 
 <template>
@@ -209,7 +211,7 @@ function handleBulkGenerateQr(accounts: SavedAccount[]) {
       <PrimeButton icon="pi pi-user-plus" class="!p-2 !rounded-full" severity="secondary" :text="true"
         @click="handleShowAccountDialog" title="Chọn nhanh tài khoản đã lưu" />
     </div>
-    <form @submit.prevent="handleGenerateQr">
+    <form @submit.prevent="handleGenerateQr" v-if="showAmnualCreate">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         <!-- Bank Selection Dropdown -->
         <div class="relative">

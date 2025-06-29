@@ -1,3 +1,19 @@
+## 2025-06-08: Debug responsive DataTable & PrimeVue, cấu hình typescript, xác định nguyên nhân layout
+
+- **Vấn đề:** DataTable PrimeVue không responsive trên mobile dù đã bỏ min-width, thử mọi cấu hình component.
+- **Các bước kiểm tra & giải pháp:**
+  - Tạo view trắng (PrimeTableTest.vue) chỉ chứa DataTable, không layout, để loại trừ ảnh hưởng layout cha.
+  - Thêm route test vào router, xác nhận DataTable vẫn không responsive.
+  - Kiểm tra toàn bộ CSS global (base.css, main.css), xác nhận không có overflow, width cố định, hoặc max-w gây lỗi.
+  - Kiểm tra meta viewport trong index.html, xác nhận đã đúng.
+  - Sửa khai báo module "\*.vue" trong env.d.ts để loại bỏ lỗi import .vue khi dùng typescript.
+  - Import và đăng ký DataTable, Column đúng chuẩn trong script setup.
+  - Xác định nguyên nhân cuối cùng: layout cha (App.vue, main) dùng flex, thiếu w-full/min-w-0, hoặc justify-center khiến DataTable không thể scroll ngang hoặc co giãn đúng.
+- **Kết luận:** Responsive DataTable phụ thuộc vào layout cha. Nếu cha dùng flex hoặc justify-center mà thiếu w-full/min-w-0 thì DataTable sẽ không scroll ngang được. Đã hướng dẫn sửa layout App.vue để khắc phục triệt để.
+- **Kết quả:** Đã xác định và hướng dẫn giải pháp chuẩn để mọi DataTable PrimeVue responsive đúng trên mobile, không còn lỗi import .vue, không còn lỗi type typescript.
+
+---
+
 ## 2025-05-18: Khắc phục lỗi hiển thị toàn màn hình trên Mobile (SPA Fullscreen)
 
 - **Thay đổi CSS:**
@@ -40,5 +56,14 @@
 - Sẵn sàng mở rộng test cho các component, store, utils còn lại nếu cần.
 
 ---
+
+---
+
+## 2025-06-29: Xóa hoàn toàn SavedAccounts.vue & dọn sạch reference
+
+- Đã xác nhận không còn file SavedAccounts.vue trong src/components/.
+- Đã kiểm tra toàn bộ mã nguồn, không còn bất kỳ reference (import, sử dụng) nào đến SavedAccounts.vue.
+- Đã dọn sạch hoàn toàn code liên quan, đảm bảo không còn code thừa hoặc nhầm lẫn về popup chọn tài khoản.
+- Memory Bank đã cập nhật để phản ánh trạng thái này.
 
 **Ghi chú:** File SavedAccounts.vue đã deprecated, có thể xóa khỏi project để tránh nhầm lẫn hoặc code thừa.
