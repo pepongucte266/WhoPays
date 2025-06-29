@@ -21,8 +21,6 @@ const props = defineProps<{
   showNav?: boolean
   canPrev?: boolean
   canNext?: boolean
-  onPrev?: () => void
-  onNext?: () => void
 }>()
 
 const displayAmount = computed(() => {
@@ -44,6 +42,9 @@ const logoUrl = computed(() => {
 
 // Sửa lại điều kiện: chỉ cần có qrDataUrl là cho phép tải
 const canDownload = computed(() => !!props.qrDataUrl)
+
+const handlePrev = () => qrStore.prevQr()
+const handleNext = () => qrStore.nextQr()
 
 function handleDownload() {
   if (props.downloadHandler) {
@@ -70,12 +71,12 @@ function handleDownload() {
     <!-- QR code + navigation -->
     <div class="relative flex items-center justify-center w-full">
       <PrimeButton v-if="showNav" class="absolute left-0 top-1/2 -translate-y-1/2 z-10 !p-3 !rounded-full"
-        :icon="'pi pi-angle-left'" severity="secondary" :text="true" :disabled="!canPrev" @click="onPrev"
+        :icon="'pi pi-angle-left'" severity="secondary" :text="true" :disabled="!canPrev" @click="handlePrev"
         style="margin-left: -8px;" />
       <img :src="qrDataUrl" alt="VietQR Code"
         class="w-52 h-52 object-contain rounded-lg bg-white p-2 mt-[20px] mb-[20px] shadow-lg border-[6px] border-white" />
       <PrimeButton v-if="showNav" class="absolute right-0 top-1/2 -translate-y-1/2 z-10 !p-3 !rounded-full"
-        :icon="'pi pi-angle-right'" severity="secondary" :text="true" :disabled="!canNext" @click="onNext"
+        :icon="'pi pi-angle-right'" severity="secondary" :text="true" :disabled="!canNext" @click="handleNext"
         style="margin-right: -8px;" />
     </div>
     <!-- Số tiền -->

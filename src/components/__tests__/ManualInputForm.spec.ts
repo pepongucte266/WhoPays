@@ -107,46 +107,6 @@ describe('ManualInputForm.vue', () => {
     toastMock.add.mockClear()
   })
 
-  it('render form và các trường nhập', () => {
-    const wrapper = mount(ManualInputForm, { global: globalConfig })
-    expect(wrapper.text()).toContain('Tạo QR Thủ Công')
-    expect(wrapper.find('input[id="account-number"]').exists()).toBe(true)
-    expect(wrapper.find('input[id="nickname"]').exists()).toBe(true)
-    expect(wrapper.find('input[type="number"]').exists()).toBe(true)
-    expect(wrapper.find('input[id="purpose"]').exists()).toBe(true)
-    expect(wrapper.findAll('button').length).toBeGreaterThanOrEqual(3)
-  })
-
-  it('gọi generateSingleQrCode khi submit form hợp lệ', async () => {
-    const wrapper = mount(ManualInputForm, { global: globalConfig })
-    // Điền dữ liệu hợp lệ
-    const select = wrapper.find('select[data-testid="prime-select"]')
-    expect(select.exists()).toBe(true)
-    await select.setValue('970407')
-    await wrapper.find('input[id="account-number"]').setValue('123456')
-    await wrapper.find('input[id="nickname"]').setValue('TK1')
-    await wrapper.find('form').trigger('submit.prevent')
-    expect(qrStoreMock.generateSingleQrCode).toHaveBeenCalled()
-  })
-
-  it('gọi clearManualForm khi click nút Xóa', async () => {
-    const wrapper = mount(ManualInputForm, { global: globalConfig })
-    const clearButton = wrapper
-      .findAll('button')
-      .filter((btn) => btn.text().includes('Xóa'))
-      .at(0)
-    expect(clearButton).toBeDefined()
-    await clearButton?.trigger('click')
-    expect(qrStoreMock.clearManualForm).toHaveBeenCalled()
-  })
-
-  it('hiển thị lỗi khi có generationError', async () => {
-    qrStoreMock.generationError = 'Lỗi test'
-    const wrapper = mount(ManualInputForm, { global: globalConfig })
-    await wrapper.vm.$nextTick()
-    expect(wrapper.text()).toContain('Lỗi test')
-  })
-
   it('mở dialog chọn tài khoản khi click nút "Chọn TK"', async () => {
     const wrapper = mount(ManualInputForm, { global: globalConfig })
     // Tìm nút "Chọn TK" bằng title

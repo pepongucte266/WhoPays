@@ -1,15 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue' // Xóa 'h' không còn dùng
+import ExcelRowActions from './ExcelRowActions.vue'
 // PrimeSkeleton đã được đăng ký global trong main.ts
 import { useQrStore } from '@/stores/qr'
 import { useBanksStore } from '@/stores/banks'
-import { useAccountStore } from '@/stores/account'
 import * as XLSX from 'xlsx'
 // import QrDisplay from './QrDisplay.vue' // Không còn dùng
 
 const qrStore = useQrStore()
 const banksStore = useBanksStore()
-const accountStore = useAccountStore()
 const fileInput = ref<HTMLInputElement | null>(null)
 
 interface ExcelRecord {
@@ -56,48 +55,6 @@ function renderPurpose(row: ExcelRecord) {
   return row.purpose || '-'
 }
 
-// function renderQrCode(row: ExcelRecord) { // Logic sẽ được chuyển vào handleShowQr hoặc nút bấm trực tiếp
-//   if (row.qrDataUrl) {
-//     return h('button', {
-//       class: 'text-blue-400 hover:text-blue-300',
-//       title: 'Tải xuống QR',
-//       onClick: () => qrStore.downloadExcelQr(row.id)
-//     }, [h('i', { class: 'pi pi-download mx-auto' })])
-//   }
-//   if (row.error) {
-//     return h('span', { class: 'text-red-500 text-xs italic' }, 'Lỗi')
-//   }
-//   return h('span', { class: 'text-gray-500 text-xs italic' }, 'Chưa tạo')
-// }
-
-// function renderError(row: ExcelRecord) { // Đã xóa cột Lỗi nên hàm này không còn dùng
-//   return row.error || '-'
-// }
-
-async function handleShowQr(record: ExcelRecord) {
-  const storeRecord = qrStore.excelRecords.find(r => r.id === record.id);
-  if (!storeRecord) {
-    console.error('Record not found in store for QR display');
-    return;
-  }
-
-  if (storeRecord.qrDataUrl) {
-    // Tìm record trong qrList để mở dialog. qrList được computed từ excelRecords có qrDataUrl.
-    const qrListIndex = qrStore.qrList.findIndex(
-      (qr) => qr.qrDataUrl === storeRecord.qrDataUrl && qr.accountNumber === storeRecord.accountNumber
-    );
-    if (qrListIndex !== -1) {
-      qrStore.openQrDialog(qrListIndex);
-    } else {
-      console.warn('QR data URL exists but not found in current QR list. List might be stale or record not processed into list.');
-      alert('Không thể hiển thị QR. Dữ liệu QR có thể chưa sẵn sàng trong danh sách hiển thị.');
-    }
-  } else if (storeRecord.error) {
-    alert(`Lỗi tạo QR cho bản ghi này: ${storeRecord.error}`);
-  } else {
-    alert('QR chưa được tạo cho bản ghi này. Vui lòng chọn và tạo QR hàng loạt.');
-  }
-}
 
 const isLoading = computed(() => qrStore.isProcessingExcel)
 const error = computed(() => qrStore.excelError)
@@ -165,33 +122,6 @@ function getBankDisplayName(bin: string): string {
   return bankInfo?.bankShortName || bankInfo?.bankName || bin
 }
 
-/**
- * Lưu tài khoản vào Supabase từ record Excel.
- */
-async function saveAccountFromExcel(record: ExcelRecord) {
-  // Chuẩn hóa dữ liệu đầu vào cho addAccount
-  const input = {
-    bank_bin: record.bankBin,
-    account_number: record.accountNumber,
-    nickname: record.nickname,
-  }
-  const success = await accountStore.addAccount(input)
-  if (success) {
-    record._saveStatus = 'success'
-    setTimeout(() => { record._saveStatus = undefined }, 2000)
-  } else {
-    record._saveStatus = 'error'
-    record._saveError = accountStore.error ?? undefined
-    setTimeout(() => { record._saveStatus = undefined; record._saveError = undefined }, 4000)
-  }
-}
-
-/**
- * Xóa một bản ghi khỏi danh sách Excel trên giao diện.
- */
-function deleteRecordFromExcel(record: ExcelRecord) {
-  qrStore.removeExcelRecord(record.id)
-}
 </script>
 
 <template>
@@ -199,17 +129,17 @@ function deleteRecordFromExcel(record: ExcelRecord) {
     <div class="flex justify-between items-center mb-4 gap-4">
       <h2 class="text-lg font-semibold text-green-400">Import từ Excel</h2>
       <div class="flex gap-2">
-        <button @click="downloadSampleExcel" title="Tải file Excel mẫu"
+        <PrimeButton size="small" @click="downloadSampleExcel" title="Tải file Excel mẫu"
           class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white font-semibold rounded-md transition duration-200 ease-in-out flex items-center text-sm">
           <i class="pi pi-download mr-2"></i>
           Tải File Mẫu
-        </button>
+        </PrimeButton>
         <input type="file" ref="fileInput" @change="handleFileChange" accept=".xlsx, .xls" class="hidden" />
-        <button @click="triggerFileInput" :disabled="isLoading" title="Chọn file Excel"
+        <PrimeButton size="small" @click="triggerFileInput" :disabled="isLoading" title="Chọn file Excel"
           class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-md transition duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed flex items-center text-sm">
           <i class="pi pi-upload mr-2"></i>
           Chọn File (.xlsx, .xls)
-        </button>
+        </PrimeButton>
       </div>
     </div>
 
@@ -267,22 +197,7 @@ function deleteRecordFromExcel(record: ExcelRecord) {
           <span v-else>{{ renderPurpose(slotProps.data) }}</span>
           <!-- Actions sẽ được chèn vào đây khi không loading và không phải skeleton record -->
           <div v-if="!(isLoading && records.length === 0) && slotProps.data.id !== -1" class="dynamic-row-actions">
-            <ButtonGroup class="flex w-full p-0 gap-0">
-              <PrimeButton class="flex-1" severity="info" icon="pi pi-qrcode" v-tooltip.top="'Xem QR'"
-                :disabled="!slotProps.data.qrDataUrl && !slotProps.data.error" @click="handleShowQr(slotProps.data)" />
-              <PrimeButton class="flex-1" icon="pi pi-save" v-tooltip.top="'Lưu tài khoản'"
-                v-if="slotProps.data._saveStatus === undefined" :disabled="accountStore.loading"
-                @click="() => saveAccountFromExcel(slotProps.data)" />
-              <PrimeButton class="flex-1 p-button-danger" icon="pi pi-trash" v-tooltip.top="'Xóa bản ghi'"
-                v-if="slotProps.data._saveStatus === undefined" @click="() => deleteRecordFromExcel(slotProps.data)" />
-            </ButtonGroup>
-
-
-            <span v-if="slotProps.data._saveStatus === 'success'"
-              class="text-green-400 text-xs font-semibold p-1 action-status-text">Đã lưu</span>
-            <span v-if="slotProps.data._saveStatus === 'error'"
-              class="text-red-400 text-xs font-semibold p-1 action-status-text"
-              :title="slotProps.data._saveError">Lỗi</span>
+            <ExcelRowActions :data="slotProps.data" />
           </div>
         </template>
       </PrimeColumn>
