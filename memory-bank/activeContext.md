@@ -1,5 +1,12 @@
 # Active Context (2025-06-29)
 
+## Cập nhật chức năng tải file mẫu Excel (ExcelImport.vue)
+
+- Đã sửa hàm `downloadSampleExcel` trong `src/components/ExcelImport.vue` để khi bấm nút "Tải File Mẫu" sẽ tải trực tiếp file tĩnh `WhoPays_Import_QR.xlsx` từ `src/assets` thay vì tạo file động bằng thư viện XLSX.
+- Đã loại bỏ import `XLSX` không còn sử dụng trong file này.
+- Đảm bảo trải nghiệm tải file mẫu nhanh, đúng định dạng, không phát sinh lỗi runtime.
+- Đã kiểm tra lại toàn bộ luồng import Excel, không ảnh hưởng đến các chức năng khác.
+
 ## Xóa hoàn toàn SavedAccounts.vue & dọn sạch reference
 
 - Đã xác nhận không còn file SavedAccounts.vue trong src/components/.

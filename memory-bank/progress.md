@@ -59,8 +59,11 @@
 
 ---
 
-## 2025-06-29: Xóa hoàn toàn SavedAccounts.vue & dọn sạch reference
+## 2025-06-29: Cập nhật chức năng tải file mẫu Excel & dọn dẹp code
 
+- Đã hoàn thành cập nhật chức năng tải file mẫu trong `ExcelImport.vue`: Khi bấm nút "Tải File Mẫu" sẽ tải trực tiếp file tĩnh `WhoPays_Import_QR.xlsx` từ `src/assets`, không còn tạo file động bằng code.
+- Đã loại bỏ import `XLSX` không còn sử dụng trong file này.
+- Đã kiểm tra lại toàn bộ luồng import Excel, xác nhận không ảnh hưởng đến các chức năng khác.
 - Đã xác nhận không còn file SavedAccounts.vue trong src/components/.
 - Đã kiểm tra toàn bộ mã nguồn, không còn bất kỳ reference (import, sử dụng) nào đến SavedAccounts.vue.
 - Đã dọn sạch hoàn toàn code liên quan, đảm bảo không còn code thừa hoặc nhầm lẫn về popup chọn tài khoản.
