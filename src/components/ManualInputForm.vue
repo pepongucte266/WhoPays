@@ -207,7 +207,7 @@ function handleBulkGenerateQr(accounts: SavedAccount[]) {
 <template>
   <div class="manual-input-form bg-gray-800 p-4 md:p-6 rounded-lg shadow-md">
     <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-semibold text-green-400">Tạo QR Thủ Công</h2>
+      <!-- <h2 class="text-lg font-semibold text-green-400">Tạo QR Thủ Công</h2> -->
       <PrimeButton icon="pi pi-user-plus" class="!p-2 !rounded-full" severity="secondary" :text="true"
         @click="handleShowAccountDialog" title="Chọn nhanh tài khoản đã lưu" />
     </div>

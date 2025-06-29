@@ -4,7 +4,6 @@ import ExcelRowActions from './ExcelRowActions.vue'
 // PrimeSkeleton đã được đăng ký global trong main.ts
 import { useQrStore } from '@/stores/qr'
 import { useBanksStore } from '@/stores/banks'
-import * as XLSX from 'xlsx'
 // import QrDisplay from './QrDisplay.vue' // Không còn dùng
 
 const qrStore = useQrStore()
@@ -89,32 +88,15 @@ const canGenerateMultiple = computed(() => {
 });
 
 /**
- * Tạo và tải xuống file Excel mẫu.
+ * Tải xuống file Excel mẫu tĩnh.
  */
 function downloadSampleExcel() {
-  const sampleData = [
-    ['Mã Ngân hàng (BIN)/Tên NH', 'Số tài khoản', 'Tên gợi nhớ/Chủ TK', 'Số tiền', 'Nội dung'],
-    ['970436', '0123456789', 'NGUYEN VAN A', '50000', 'Thanh toán hóa đơn ABC'],
-    ['Vietinbank', '9876543210', 'TRAN THI B', '', 'Chuyển tiền học phí'],
-    ['970422', '1122334455', 'LE VAN C', '1000000', ''],
-  ];
-
-  try {
-    const ws = XLSX.utils.aoa_to_sheet(sampleData);
-    ws['!cols'] = [
-      { wch: 25 },
-      { wch: 20 },
-      { wch: 25 },
-      { wch: 15 },
-      { wch: 30 }
-    ];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'DuLieuMau');
-    XLSX.writeFile(wb, 'Mau_Import_QR.xlsx');
-  } catch (error) {
-    console.error("Error generating sample Excel file:", error);
-    alert("Đã xảy ra lỗi khi tạo file mẫu. Vui lòng thử lại.");
-  }
+  const link = document.createElement('a');
+  link.href = '/src/assets/WhoPays_Import_QR.xlsx'; // Nếu không được, thử '/assets/WhoPays_Import_QR.xlsx'
+  link.download = 'Mau_Import_QR.xlsx';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 function getBankDisplayName(bin: string): string {
@@ -222,7 +204,6 @@ function getBankDisplayName(bin: string): string {
 .excel-import-table :deep(.purpose-cell-actions-container) {
   overflow: visible !important;
 }
-
 
 .dynamic-row-actions {
   display: flex;

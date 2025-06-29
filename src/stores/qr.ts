@@ -213,7 +213,7 @@ export const useQrStore = defineStore('qr', () => {
             throw new Error('File Excel trống hoặc không có dữ liệu.')
           }
 
-          const headers = jsonData[0].map((h) => String(h).trim().toLowerCase())
+          const headers = jsonData[1].map((h) => String(h).trim().toLowerCase())
           const bankColIndex = headers.findIndex(
             (h) => h.includes('ngân hàng') || h.includes('bank') || h.includes('bin'),
           )

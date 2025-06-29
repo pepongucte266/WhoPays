@@ -40,3 +40,8 @@ a,
     padding: 0 2rem;
   }
 }
+
+.excel-import .p-datatable-table-container {
+  /* Đảm bảo không có overflow ẩn */
+  overflow-x: hidden !important;
+}
