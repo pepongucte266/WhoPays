@@ -92,7 +92,7 @@ const canGenerateMultiple = computed(() => {
  */
 function downloadSampleExcel() {
   const link = document.createElement('a');
-  link.href = '/src/assets/WhoPays_Import_QR.xlsx'; // Nếu không được, thử '/assets/WhoPays_Import_QR.xlsx'
+  link.href = '/WhoPays_Import_QR.xlsx'; // Đường dẫn mới: file nằm trong public/
   link.download = 'Mau_Import_QR.xlsx';
   document.body.appendChild(link);
   link.click();
