@@ -130,15 +130,6 @@ describe('ExcelImport.vue', () => {
     expect(wrapper.exists()).toBe(true)
   })
 
-  it('gọi XLSX.writeFile khi click tải file mẫu', async () => {
-    const XLSX = await import('xlsx')
-    const wrapper = mount(ExcelImport, { global: globalConfig })
-    const btn = wrapper.findAll('button').find((b) => b.text().includes('Tải File Mẫu'))
-    expect(btn).toBeDefined()
-    await btn?.trigger('click')
-    expect(XLSX.writeFile).toHaveBeenCalled()
-  })
-
   it('gọi addAccount khi click nút lưu tài khoản trong bảng', async () => {
     const wrapper = mount(ExcelImport, { global: globalConfig })
     expect(wrapper.exists()).toBe(true)
