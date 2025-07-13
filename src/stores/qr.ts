@@ -50,6 +50,7 @@ export const useQrStore = defineStore('qr', () => {
   const excelRecords = ref<ExcelRecord[]>([])
   const isProcessingExcel = ref<boolean>(false)
   const excelError = ref<string | null>(null)
+  const uploadedExcelFile = ref<File | null>(null) // Store uploaded file info
 
   const isGeneratingQr = ref<boolean>(false)
   const generationError = ref<string | null>(null)
@@ -193,6 +194,7 @@ export const useQrStore = defineStore('qr', () => {
     isProcessingExcel.value = true
     excelError.value = null
     excelRecords.value = []
+    uploadedExcelFile.value = file // Store the uploaded file
 
     try {
       const reader = new FileReader()
@@ -282,7 +284,7 @@ export const useQrStore = defineStore('qr', () => {
                 nickname: nickname,
                 amount: amount !== undefined && !isNaN(amount) && amount >= 0 ? amount : undefined,
                 purpose: purpose?.substring(0, 70),
-                selected: true,
+                selected: false, // Let PrimeVue handle selection
               })
             }
           }
@@ -418,9 +420,16 @@ export const useQrStore = defineStore('qr', () => {
     excelRecords,
     isProcessingExcel,
     excelError,
+    uploadedExcelFile,
     importFromExcel,
     generateMultipleQrCodes,
     downloadExcelQr,
+    clearExcelImport() {
+      excelRecords.value = []
+      uploadedExcelFile.value = null
+      excelError.value = null
+      isProcessingExcel.value = false
+    },
 
     // Action to remove a record from excelRecords
     removeExcelRecord(recordId: number) {

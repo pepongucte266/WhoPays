@@ -107,7 +107,7 @@ function getBankDisplayName(bin: string): string {
 </script>
 
 <template>
-  <div class="excel-import bg-gray-800 p-6 rounded-lg shadow-md">
+  <div class="excel-import rounded-lg shadow-md">
     <div class="flex justify-between items-center mb-4 gap-4">
       <h2 class="text-lg font-semibold text-green-400">Import từ Excel</h2>
       <div class="flex gap-2">

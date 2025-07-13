@@ -7,6 +7,7 @@ import {
 import HomeView from '../views/HomeView.vue'
 import LoginView from '../views/LoginView.vue' // Import LoginView
 import RegisterView from '../views/RegisterView.vue' // Import RegisterView
+import EmployeeManagementView from '@/views/EmployeeManagementView.vue'
 import { useAuthStore } from '@/stores/auth' // Import auth store
 
 const router = createRouter({
@@ -17,6 +18,12 @@ const router = createRouter({
       name: 'home',
       component: HomeView,
       meta: { requiresAuth: true }, // Đánh dấu route này cần đăng nhập
+    },
+    {
+      path: '/employee-management',
+      name: 'employee-management',
+      component: EmployeeManagementView,
+      meta: { requiresAuth: true },
     },
     {
       path: '/login', // Route đăng nhập
@@ -46,19 +53,16 @@ router.beforeEach(
   async (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
     const authStore = useAuthStore()
 
-    // Đảm bảo authStore đã kiểm tra session ban đầu (quan trọng!)
-    // Trong thực tế, bạn có thể cần một cơ chế chờ đợi phức tạp hơn
-    // nếu initializeAuthListener chưa chạy xong.
-    // Ví dụ: chờ authStore.loading === false sau lần chạy đầu tiên.
-    // Ở đây, giả định là trạng thái isLoggedIn đã đáng tin cậy ở mức độ nào đó.
+    // Wait for auth initialization to complete
+    if (!authStore.initialized && authStore.loading) {
+      console.log('Router guard waiting for auth initialization...')
 
-    // Nếu chưa fetch session lần đầu, hãy đợi (cách đơn giản)
-    // Điều này có thể cần cải thiện để tránh chặn UI quá lâu
-    if (authStore.user === undefined && authStore.loading) {
-      // Có thể thêm một vòng lặp chờ hoặc sự kiện
-      console.log('Router guard waiting for initial auth check...')
-      // Tạm thời cho qua để tránh deadlock, nhưng cần giải pháp tốt hơn
-      // await new Promise(resolve => setTimeout(resolve, 100)); // Không nên dùng setTimeout
+      // Wait for auth to be initialized (max 5 seconds to prevent infinite loading)
+      let attempts = 0
+      while (!authStore.initialized && authStore.loading && attempts < 50) {
+        await new Promise((resolve) => setTimeout(resolve, 100))
+        attempts++
+      }
     }
 
     const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)

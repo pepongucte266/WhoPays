@@ -1,8 +1,129 @@
 @import './base.css';
+@import 'tailwindcss';
+@import 'tailwindcss-primeui';
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* ===== THEME SYSTEM ===== */
+/* Default light theme */
+:root {
+  --app-bg-primary: #ffffff;
+  --app-bg-secondary: #f9fafb;
+  --app-text-primary: #111827;
+  --app-text-secondary: #374151;
+  --app-text-muted: #6b7280;
+  --app-border: #e5e7eb;
+  --app-shadow: rgba(0, 0, 0, 0.1);
+}
+
+/* Dark theme */
+.my-app-dark {
+  --app-bg-primary: #111827;
+  --app-bg-secondary: #1f2937;
+  --app-text-primary: #ffffff;
+  --app-text-secondary: #d1d5db;
+  --app-text-muted: #9ca3af;
+  --app-border: #374151;
+  --app-shadow: rgba(0, 0, 0, 0.3);
+}
+
+/* ===== GLOBAL THEME CLASSES ===== */
+.theme-bg-primary {
+  background-color: var(--app-bg-primary);
+  transition: background-color 0.2s ease;
+}
+
+.theme-bg-secondary {
+  background-color: var(--app-bg-secondary);
+  transition: background-color 0.2s ease;
+}
+
+.theme-text-primary {
+  color: var(--app-text-primary);
+  transition: color 0.2s ease;
+}
+
+.theme-text-secondary {
+  color: var(--app-text-secondary);
+  transition: color 0.2s ease;
+}
+
+.theme-text-muted {
+  color: var(--app-text-muted);
+  transition: color 0.2s ease;
+}
+
+.theme-border {
+  border-color: var(--app-border);
+  transition: border-color 0.2s ease;
+}
+
+/* ===== VIEW CONTAINER STYLES ===== */
+.view-container {
+  background-color: var(--app-bg-primary);
+  color: var(--app-text-primary);
+  transition: all 0.2s ease;
+  min-height: 100vh;
+}
+
+.view-title {
+  color: var(--app-text-primary);
+  transition: color 0.2s ease;
+}
+
+.view-text {
+  color: var(--app-text-secondary);
+  transition: color 0.2s ease;
+}
+
+.view-muted-text {
+  color: var(--app-text-muted);
+  transition: color 0.2s ease;
+}
+
+/* ===== MAIN CONTENT STYLES ===== */
+.main-content {
+  background-color: var(--app-bg-primary);
+  transition: background-color 0.2s ease;
+}
+
+/* ===== BUTTON STYLES ===== */
+.generate-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  justify-content: center;
+}
+
+.generate-button.purple-button {
+  background-color: #6b26d9;
+}
+
+.generate-button.purple-button:hover:not(:disabled) {
+  /* background-color: #5a1fb8; */
+}
+
+.generate-button.purple-button.disabled {
+  background-color: #6b26d9;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.generate-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.generate-button.disabled {
+  cursor: not-allowed;
+  transform: none;
+}
 
 #app {
   margin: 0 auto;
@@ -12,14 +133,6 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-}
-
-a,
-.green {
-  text-decoration: none;
-  color: hsla(160, 100%, 37%, 1);
-  transition: 0.4s;
-  padding: 3px;
 }
 
 @media (hover: hover) {
@@ -37,7 +150,6 @@ a,
   #app {
     display: flex;
     grid-template-columns: 1fr 1fr;
-    padding: 0 2rem;
   }
 }
 

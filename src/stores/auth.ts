@@ -7,8 +7,9 @@ export const useAuthStore = defineStore('auth', () => {
   // State
   const session = ref<Session | null>(null)
   const user = ref<User | null>(null)
-  const loading = ref<boolean>(false)
+  const loading = ref<boolean>(true) // Start with true to indicate initial loading
   const error = ref<AuthError | null>(null)
+  const initialized = ref<boolean>(false) // Track if auth has been initialized
 
   // Getters
   const isLoggedIn = computed(() => !!user.value)
@@ -17,36 +18,41 @@ export const useAuthStore = defineStore('auth', () => {
 
   // Actions
   async function initializeAuthListener() {
-    // Lắng nghe sự kiện thay đổi trạng thái xác thực từ Supabase
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, currentSession) => {
-      console.log('Supabase Auth Event:', event)
-      session.value = currentSession
-      user.value = currentSession?.user ?? null
-      loading.value = false // Reset loading state on change
-    })
-
-    // Lấy session hiện tại khi khởi tạo
     try {
       loading.value = true
+      error.value = null
+
+      // Get current session first
       const { data, error: sessionError } = await supabase.auth.getSession()
       if (sessionError) throw sessionError
+
       session.value = data.session
       user.value = data.session?.user ?? null
+
+      console.log('Initial session:', data.session ? 'Found' : 'Not found')
+
+      // Set up auth state change listener
+      supabase.auth.onAuthStateChange((event, currentSession) => {
+        console.log('Supabase Auth Event:', event)
+        session.value = currentSession
+        user.value = currentSession?.user ?? null
+
+        // Don't set loading to false here for state changes
+        // as they happen after initial load
+      })
+
+      initialized.value = true
     } catch (err: unknown) {
       if (err instanceof Error || (typeof err === 'object' && err !== null && 'message' in err)) {
-        error.value = err as AuthError // Supabase errors often align with AuthError structure
-        console.error('Error getting initial session:', err)
+        error.value = err as AuthError
+        console.error('Error initializing auth:', err)
       } else {
-        console.error('Unknown error getting initial session:', err)
+        console.error('Unknown error initializing auth:', err)
         error.value = { name: 'UnknownError', message: 'An unknown error occurred' } as AuthError
       }
     } finally {
       loading.value = false
     }
-
-    // Trả về listener để có thể unsubscribe khi cần (ví dụ: trong App.vue unmount)
-    // return { authListener } // Pinia không khuyến khích trả về từ action, xử lý unsubscribe ở nơi gọi
   }
 
   async function signUp(email: string, password: string): Promise<boolean> {
@@ -146,6 +152,7 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     loading,
     error,
+    initialized,
     isLoggedIn,
     userId,
     userRole, // Expose userRole
