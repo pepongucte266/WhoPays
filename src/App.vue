@@ -39,11 +39,12 @@ onMounted(async () => {
   <!-- Main app -->
   <div v-else id="app-container" class="flex h-screen"
     :class="isLoggedIn ? 'bg-gray-100 dark:bg-gray-900' : 'bg-white dark:bg-gray-900'">
-    <div v-if="isLoggedIn" class="relative">
+    <div v-if="isLoggedIn && !sidebarStore.isHidden" class="relative">
       <AppSidebar />
       <!-- Overlay for mobile when sidebar is open -->
-      <div v-if="!sidebarStore.isMenuOnly" @click="sidebarStore.toMenuOnly"
-        class="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden transition-opacity duration-300"></div>
+      <div v-if="!sidebarStore.isMenuOnly || (sidebarStore.isMenuOnly && !sidebarStore.isHidden)"
+        @click="sidebarStore.toMenuOnly"
+        class="fixed inset-0 bg-black bg-opacity-50 z-[140] md:hidden transition-opacity duration-300"></div>
     </div>
 
     <!-- Main Content -->
@@ -69,6 +70,12 @@ onMounted(async () => {
   /* bg-gray-700 */
 }
 
+/* Fix for iPad/iOS viewport height issue */
+#app-container {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
 /* Loading Screen Styles */
 .loading-screen {
   position: fixed;
@@ -76,6 +83,7 @@ onMounted(async () => {
   left: 0;
   width: 100%;
   height: 100%;
+  height: -webkit-fill-available;
   background-color: #1a1a1a;
   display: flex;
   align-items: center;

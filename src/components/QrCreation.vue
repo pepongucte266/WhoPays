@@ -2,11 +2,6 @@
   <div class="qr-creation-container">
     <!-- Header Section -->
     <div class="page-header">
-      <h1 class="page-title view-title">Create QR Codes</h1>
-      <p class="page-description view-text">
-        Generate QR codes for employees from Excel import or employee selection
-      </p>
-
       <!-- Mode Selection Tabs -->
       <div class="mode-tabs">
         <button @click="activeMode = 'excel'" :class="['tab-button', { 'tab-active': activeMode === 'excel' }]">
