@@ -128,8 +128,8 @@ const notificationCount = ref(3) // Example notification count
     <div class="header-content">
       <!-- Left side: Menu button -->
       <div class="header-left">
-        <button v-if="sidebarStore.isMenuOnly && isLoggedIn" @click="sidebarStore.open" class="menu-button"
-          title="Mở rộng sidebar">
+        <button v-if="sidebarStore.isHidden || sidebarStore.isMenuOnly" @click="sidebarStore.toggle" class="menu-button"
+          :title="sidebarStore.isHidden ? 'Hiển thị sidebar' : 'Mở rộng sidebar'">
           <MenuIcon class="menu-icon" />
         </button>
       </div>

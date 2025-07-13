@@ -46,6 +46,12 @@
           <div class="upload-text">
             <h3 class="upload-main-text view-title">Click to browse or drag and drop your Excel file here</h3>
             <p class="upload-sub-text view-muted-text">Supports .xlsx and .xls files</p>
+            <p class="upload-info-text view-muted-text">
+              Nếu chưa có file mẫu hãy
+              <span @click.stop="downloadSampleExcel" class="sample-download-link" title="Tải file Excel mẫu">
+                tải về
+              </span>
+            </p>
           </div>
         </div>
       </div>
@@ -367,16 +373,15 @@ function toggleSelectAll() {
 
 /**
  * Tải xuống file Excel mẫu tĩnh.
- * Currently not used but kept for future functionality
  */
-// function downloadSampleExcel() {
-//   const link = document.createElement('a');
-//   link.href = '/WhoPays_Import_QR.xlsx'; // File nằm trong public/
-//   link.download = 'Mau_Import_QR.xlsx';
-//   document.body.appendChild(link);
-//   link.click();
-//   document.body.removeChild(link);
-// }
+function downloadSampleExcel() {
+  const link = document.createElement('a');
+  link.href = '/WhoPays_Import_QR.xlsx'; // Đường dẫn mới: file nằm trong public/
+  link.download = 'Mau_Import_QR.xlsx';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
 
 function triggerFileInput() {
   fileInput.value?.click()
@@ -515,7 +520,6 @@ function generateQRCodes() {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 32px;
   position: relative;
   padding: 24px;
   border: 1px solid var(--app-border);
@@ -599,6 +603,25 @@ function generateQRCodes() {
   font-size: 14px;
   color: var(--app-text-muted);
   margin: 0;
+}
+
+.upload-info-text {
+  font-size: 14px;
+  color: var(--app-text-muted);
+  margin: 0;
+  margin-top: 8px;
+}
+
+.sample-download-link {
+  color: #6b26d9;
+  text-decoration: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.sample-download-link:hover {
+  color: #5a1fb8;
 }
 
 /* Generate Button Section */

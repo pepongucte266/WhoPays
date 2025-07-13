@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
-import { computed } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useSidebarStore } from '@/stores/sidebar'
 import LogoIcon from '@/assets/icons/logo.svg?component'
 import DashboardIcon from '@/assets/icons/dashboard.svg?component'
@@ -14,8 +14,25 @@ import XIcon from '@/assets/icons/x.svg?component'
 
 const sidebarStore = useSidebarStore()
 
+// Screen size tracking
+const isMobile = ref(false)
+
+const checkScreenSize = () => {
+  isMobile.value = window.innerWidth < 768
+}
+
+onMounted(() => {
+  checkScreenSize()
+  window.addEventListener('resize', checkScreenSize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', checkScreenSize)
+})
+
 // Computed properties for easier access
 const isMenuOnly = computed(() => sidebarStore.isMenuOnly)
+const isHidden = computed(() => sidebarStore.isHidden)
 
 // Handle click X button - immediate state change
 const handleCollapseClick = () => {
@@ -24,23 +41,24 @@ const handleCollapseClick = () => {
 </script>
 
 <template>
-  <aside
-    class="fixed left-0 top-0 z-50 flex h-screen flex-col overflow-y-auto bg-[#101014] rounded-r-[24px] shadow-lg transition-all duration-300 ease-in-out lg:relative lg:translate-x-0 lg:rounded-[24px]"
+  <aside v-show="!isHidden"
+    class="fixed left-0 top-0 flex h-screen flex-col overflow-y-auto bg-[#101014] shadow-lg transition-all duration-300 ease-in-out lg:relative lg:translate-x-0"
     :class="{
-      'w-[260px] translate-x-0 px-6 py-8': !isMenuOnly,
-      'w-[80px] translate-x-0 px-2 py-8': isMenuOnly
+      'w-[260px] translate-x-0 px-6 py-8 rounded-r-[24px] lg:rounded-[24px] z-50': !isMenuOnly,
+      'w-[80px] translate-x-0 px-2 py-8 rounded-r-[24px] lg:rounded-[24px] z-50': isMenuOnly && !isMobile,
+      'w-[260px] translate-x-0 px-6 py-8 rounded-none z-[150]': isMenuOnly && isMobile
     }">
     <!-- Header section -->
-    <div class="flex items-center mb-8" :class="isMenuOnly ? 'justify-center' : 'justify-between'">
-      <div class="flex items-center gap-3" :class="isMenuOnly ? 'justify-center' : ''">
+    <div class="flex items-center mb-8" :class="(isMenuOnly && !isMobile) ? 'justify-center' : 'justify-between'">
+      <div class="flex items-center gap-3" :class="(isMenuOnly && !isMobile) ? 'justify-center' : ''">
         <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-[#23294A] logo-container">
           <LogoIcon class="h-7 w-7 text-white" />
         </div>
-        <div v-if="!isMenuOnly" class="flex flex-col">
+        <div v-if="!isMenuOnly || isMobile" class="flex flex-col">
           <span class="text-xs font-medium text-[#A3AED0]">VTBon System</span>
         </div>
       </div>
-      <button v-if="!isMenuOnly" @click="handleCollapseClick"
+      <button v-if="!isMenuOnly || isMobile" @click="handleCollapseClick"
         class="flex items-center justify-center w-8 h-8 rounded-lg bg-[#23294A] hover:bg-[#353968] transition-colors duration-200 group cursor-pointer"
         title="Thu gọn sidebar">
         <XIcon class="h-5 w-5 text-[#A3AED0] group-hover:text-[#F4F7FE] transition-colors duration-200" />
@@ -51,11 +69,12 @@ const handleCollapseClick = () => {
     <nav class="flex-1 space-y-2">
       <RouterLink to="/dashboard"
         class="flex items-center rounded-lg transition-all duration-200 hover:bg-[#23294A] hover:text-[#F4F7FE] router-link-exact-active:bg-[#353968] router-link-exact-active:text-[#F4F7FE] cursor-pointer relative group"
-        :class="isMenuOnly ? 'justify-center px-2 py-3' : 'gap-3 px-4 py-3'" :title="isMenuOnly ? 'Dashboard' : ''">
+        :class="(isMenuOnly && !isMobile) ? 'justify-center px-2 py-3' : 'gap-3 px-4 py-3'"
+        :title="(isMenuOnly && !isMobile) ? 'Dashboard' : ''">
         <DashboardIcon class="h-6 w-6 text-[#A3AED0] flex-shrink-0" />
-        <span v-if="!isMenuOnly" class="font-medium text-base text-[#A3AED0]">Dashboard</span>
+        <span v-if="!isMenuOnly || isMobile" class="font-medium text-base text-[#A3AED0]">Dashboard</span>
         <!-- Tooltip for collapsed state -->
-        <span v-if="isMenuOnly"
+        <span v-if="isMenuOnly && !isMobile"
           class="absolute left-16 top-1/2 transform -translate-y-1/2 bg-[#23294A] text-[#F4F7FE] px-2 py-1 rounded-md text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
           Dashboard
         </span>
@@ -63,11 +82,12 @@ const handleCollapseClick = () => {
 
       <RouterLink to="/employee-management"
         class="flex items-center rounded-lg transition-all duration-200 hover:bg-[#23294A] hover:text-[#F4F7FE] router-link-exact-active:bg-[#353968] router-link-exact-active:text-[#F4F7FE] cursor-pointer relative group"
-        :class="isMenuOnly ? 'justify-center px-2 py-3' : 'gap-3 px-4 py-3'" :title="isMenuOnly ? 'Employees' : ''">
+        :class="(isMenuOnly && !isMobile) ? 'justify-center px-2 py-3' : 'gap-3 px-4 py-3'"
+        :title="(isMenuOnly && !isMobile) ? 'Employees' : ''">
         <EmployeesIcon class="h-6 w-6 text-[#A3AED0] flex-shrink-0" />
-        <span v-if="!isMenuOnly" class="font-medium text-base text-[#A3AED0]">Employees</span>
+        <span v-if="!isMenuOnly || isMobile" class="font-medium text-base text-[#A3AED0]">Employees</span>
         <!-- Tooltip for collapsed state -->
-        <span v-if="isMenuOnly"
+        <span v-if="isMenuOnly && !isMobile"
           class="absolute left-16 top-1/2 transform -translate-y-1/2 bg-[#23294A] text-[#F4F7FE] px-2 py-1 rounded-md text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
           Employees
         </span>
@@ -75,11 +95,12 @@ const handleCollapseClick = () => {
 
       <RouterLink to="/departments"
         class="flex items-center rounded-lg transition-all duration-200 hover:bg-[#23294A] hover:text-[#F4F7FE] router-link-exact-active:bg-[#353968] router-link-exact-active:text-[#F4F7FE] cursor-pointer relative group"
-        :class="isMenuOnly ? 'justify-center px-2 py-3' : 'gap-3 px-4 py-3'" :title="isMenuOnly ? 'Departments' : ''">
+        :class="(isMenuOnly && !isMobile) ? 'justify-center px-2 py-3' : 'gap-3 px-4 py-3'"
+        :title="(isMenuOnly && !isMobile) ? 'Departments' : ''">
         <DepartmentsIcon class="h-6 w-6 text-[#A3AED0] flex-shrink-0" />
-        <span v-if="!isMenuOnly" class="font-medium text-base text-[#A3AED0]">Departments</span>
+        <span v-if="!isMenuOnly || isMobile" class="font-medium text-base text-[#A3AED0]">Departments</span>
         <!-- Tooltip for collapsed state -->
-        <span v-if="isMenuOnly"
+        <span v-if="isMenuOnly && !isMobile"
           class="absolute left-16 top-1/2 transform -translate-y-1/2 bg-[#23294A] text-[#F4F7FE] px-2 py-1 rounded-md text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
           Departments
         </span>
@@ -87,11 +108,12 @@ const handleCollapseClick = () => {
 
       <RouterLink to="/"
         class="flex items-center rounded-lg transition-all duration-200 hover:bg-[#23294A] hover:text-[#F4F7FE] router-link-exact-active:bg-[#353968] router-link-exact-active:text-[#F4F7FE] cursor-pointer relative group"
-        :class="isMenuOnly ? 'justify-center px-2 py-3' : 'gap-3 px-4 py-3'" :title="isMenuOnly ? 'Create QR' : ''">
+        :class="(isMenuOnly && !isMobile) ? 'justify-center px-2 py-3' : 'gap-3 px-4 py-3'"
+        :title="(isMenuOnly && !isMobile) ? 'Create QR' : ''">
         <CreateQrIcon class="h-6 w-6 text-[#A3AED0] flex-shrink-0" />
-        <span v-if="!isMenuOnly" class="font-medium text-base text-[#A3AED0]">Create QR</span>
+        <span v-if="!isMenuOnly || isMobile" class="font-medium text-base text-[#A3AED0]">Create QR</span>
         <!-- Tooltip for collapsed state -->
-        <span v-if="isMenuOnly"
+        <span v-if="isMenuOnly && !isMobile"
           class="absolute left-16 top-1/2 transform -translate-y-1/2 bg-[#23294A] text-[#F4F7FE] px-2 py-1 rounded-md text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
           Create QR
         </span>
@@ -99,11 +121,12 @@ const handleCollapseClick = () => {
 
       <RouterLink to="/calendar"
         class="flex items-center rounded-lg transition-all duration-200 hover:bg-[#23294A] hover:text-[#F4F7FE] router-link-exact-active:bg-[#353968] router-link-exact-active:text-[#F4F7FE] cursor-pointer relative group"
-        :class="isMenuOnly ? 'justify-center px-2 py-3' : 'gap-3 px-4 py-3'" :title="isMenuOnly ? 'Calendar' : ''">
+        :class="(isMenuOnly && !isMobile) ? 'justify-center px-2 py-3' : 'gap-3 px-4 py-3'"
+        :title="(isMenuOnly && !isMobile) ? 'Calendar' : ''">
         <CalendarIcon class="h-6 w-6 text-[#A3AED0] flex-shrink-0" />
-        <span v-if="!isMenuOnly" class="font-medium text-base text-[#A3AED0]">Calendar</span>
+        <span v-if="!isMenuOnly || isMobile" class="font-medium text-base text-[#A3AED0]">Calendar</span>
         <!-- Tooltip for collapsed state -->
-        <span v-if="isMenuOnly"
+        <span v-if="isMenuOnly && !isMobile"
           class="absolute left-16 top-1/2 transform -translate-y-1/2 bg-[#23294A] text-[#F4F7FE] px-2 py-1 rounded-md text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
           Calendar
         </span>
@@ -111,11 +134,12 @@ const handleCollapseClick = () => {
 
       <RouterLink to="/analytics"
         class="flex items-center rounded-lg transition-all duration-200 hover:bg-[#23294A] hover:text-[#F4F7FE] router-link-exact-active:bg-[#353968] router-link-exact-active:text-[#F4F7FE] cursor-pointer relative group"
-        :class="isMenuOnly ? 'justify-center px-2 py-3' : 'gap-3 px-4 py-3'" :title="isMenuOnly ? 'Analytics' : ''">
+        :class="(isMenuOnly && !isMobile) ? 'justify-center px-2 py-3' : 'gap-3 px-4 py-3'"
+        :title="(isMenuOnly && !isMobile) ? 'Analytics' : ''">
         <AnalyticsIcon class="h-6 w-6 text-[#A3AED0] flex-shrink-0" />
-        <span v-if="!isMenuOnly" class="font-medium text-base text-[#A3AED0]">Analytics</span>
+        <span v-if="!isMenuOnly || isMobile" class="font-medium text-base text-[#A3AED0]">Analytics</span>
         <!-- Tooltip for collapsed state -->
-        <span v-if="isMenuOnly"
+        <span v-if="isMenuOnly && !isMobile"
           class="absolute left-16 top-1/2 transform -translate-y-1/2 bg-[#23294A] text-[#F4F7FE] px-2 py-1 rounded-md text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
           Analytics
         </span>
@@ -123,11 +147,12 @@ const handleCollapseClick = () => {
 
       <RouterLink to="/settings"
         class="flex items-center rounded-lg transition-all duration-200 hover:bg-[#23294A] hover:text-[#F4F7FE] router-link-exact-active:bg-[#353968] router-link-exact-active:text-[#F4F7FE] cursor-pointer relative group"
-        :class="isMenuOnly ? 'justify-center px-2 py-3' : 'gap-3 px-4 py-3'" :title="isMenuOnly ? 'Settings' : ''">
+        :class="(isMenuOnly && !isMobile) ? 'justify-center px-2 py-3' : 'gap-3 px-4 py-3'"
+        :title="(isMenuOnly && !isMobile) ? 'Settings' : ''">
         <SettingsIcon class="h-6 w-6 text-[#A3AED0] flex-shrink-0" />
-        <span v-if="!isMenuOnly" class="font-medium text-base text-[#A3AED0]">Settings</span>
+        <span v-if="!isMenuOnly || isMobile" class="font-medium text-base text-[#A3AED0]">Settings</span>
         <!-- Tooltip for collapsed state -->
-        <span v-if="isMenuOnly"
+        <span v-if="isMenuOnly && !isMobile"
           class="absolute left-16 top-1/2 transform -translate-y-1/2 bg-[#23294A] text-[#F4F7FE] px-2 py-1 rounded-md text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
           Settings
         </span>
@@ -136,7 +161,8 @@ const handleCollapseClick = () => {
 
     <!-- User Profile Section -->
     <div class="mt-8">
-      <div v-if="!isMenuOnly" class="flex items-center gap-3 rounded-xl bg-[#27272A]/50 border border-[#27272A] p-3">
+      <div v-if="!isMenuOnly || isMobile"
+        class="flex items-center gap-3 rounded-xl bg-[#27272A]/50 border border-[#27272A] p-3">
         <div class="flex-shrink-0">
           <img class="h-8 w-8 rounded-full object-cover" src="@/assets/icons/user-avatar.png" alt="John Doe avatar" />
         </div>
@@ -231,6 +257,13 @@ nav a:hover svg {
   aside {
     position: fixed;
     z-index: 50;
+  }
+}
+
+/* Mobile sidebar z-index override */
+@media (max-width: 768px) {
+  aside {
+    z-index: 150 !important;
   }
 }
 </style>

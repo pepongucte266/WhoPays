@@ -2,6 +2,23 @@
 @import 'tailwindcss';
 @import 'tailwindcss-primeui';
 
+/* ===== iOS/iPad VIEWPORT HEIGHT FIX ===== */
+/* Global CSS để khắc phục viewport height trên iOS */
+html {
+  height: -webkit-fill-available;
+}
+
+body {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+/* Đảm bảo các container chính có height đúng */
+#app {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
 /* ===== THEME SYSTEM ===== */
 /* Default light theme */
 :root {
@@ -107,7 +124,7 @@
 }
 
 .generate-button.purple-button:hover:not(:disabled) {
-  /* background-color: #5a1fb8; */
+  background-color: #5a1fb8;
 }
 
 .generate-button.purple-button.disabled {
